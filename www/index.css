@@ -1,0 +1,442 @@
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Orbitron', monospace;
+            color: #fff;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+            overscroll-behavior: none;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #hud {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: calc(14px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) 14px calc(20px + env(safe-area-inset-left));
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .sw {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .lbl {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, .3);
+        }
+
+        #score-val {
+            font-size: clamp(28px, 6vw, 44px);
+            font-weight: 900;
+            line-height: 1;
+            text-shadow: 0 0 22px #00f2ff;
+        }
+
+        #best-val {
+            font-size: clamp(16px, 3.5vw, 22px);
+            font-weight: 700;
+            color: rgba(255, 255, 255, .4);
+            text-align: right;
+        }
+
+        #wave-lbl {
+            position: fixed;
+            top: calc(16px + env(safe-area-inset-top));
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            letter-spacing: 4px;
+            color: rgba(255, 255, 255, .6);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #combo {
+            position: fixed;
+            top: clamp(70px, 12vh, 100px);
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: clamp(18px, 4vw, 28px);
+            font-weight: 900;
+            letter-spacing: 3px;
+            pointer-events: none;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity .2s;
+            text-shadow: 0 0 22px currentColor;
+            white-space: nowrap;
+        }
+
+        #combo.show {
+            opacity: 1;
+        }
+
+        #pbar {
+            position: fixed;
+            bottom: calc(18px + env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 14px;
+            z-index: 10;
+            pointer-events: none;
+            align-items: flex-end;
+        }
+
+        .pu-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .pu-timer {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            color: rgba(255, 255, 255, .5);
+            height: 12px;
+        }
+
+        .pu {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, .15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            opacity: .2;
+            transition: opacity .3s, box-shadow .3s, transform .2s;
+        }
+
+        .pu.on {
+            opacity: 1;
+            transform: scale(1.12);
+        }
+
+        #pu-shield.on {
+            box-shadow: 0 0 16px #00f2ff;
+            border-color: #00f2ff;
+        }
+
+        #pu-slow.on {
+            box-shadow: 0 0 16px #ffcc00;
+            border-color: #ffcc00;
+        }
+
+        #pu-magnet.on {
+            box-shadow: 0 0 16px #ff00ff;
+            border-color: #ff00ff;
+        }
+
+        #ldots {
+            position: fixed;
+            right: calc(16px + env(safe-area-inset-right));
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .ldot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .12);
+            transition: all .15s;
+        }
+
+        #btn-pause {
+            position: fixed;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: rgba(255, 255, 255, .35);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 3px;
+            padding: 5px 14px;
+            cursor: pointer;
+            z-index: 11;
+            display: none;
+        }
+
+        #btn-pause:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            background: rgba(0, 0, 0, .88);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s;
+            backdrop-filter: blur(4px);
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+        }
+
+        .screen.on {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .gtitle {
+            font-size: clamp(52px, 12vw, 100px);
+            font-weight: 900;
+            line-height: 1;
+            text-align: center;
+            letter-spacing: .06em;
+            background: linear-gradient(135deg, #00f2ff 0%, #ff00ff 50%, #ffcc00 100%);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gs 3s ease infinite;
+        }
+
+        @keyframes gs {
+
+            0%,
+            100% {
+                background-position: 0% 50%
+            }
+
+            50% {
+                background-position: 100% 50%
+            }
+        }
+
+        .sub {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 6px;
+            color: rgba(255, 255, 255, .28);
+            margin: 10px 0 36px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 13px 44px;
+            font-family: 'Orbitron', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            color: #000;
+            background: linear-gradient(90deg, #00f2ff, #ff00ff);
+            border: none;
+            cursor: pointer;
+            margin: 6px;
+            clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%);
+            transition: transform .15s, box-shadow .15s;
+        }
+
+        .btn:hover,
+        .btn:active {
+            transform: scale(1.06);
+            box-shadow: 0 0 28px rgba(0, 242, 255, .55);
+        }
+
+        .btn.sec {
+            background: transparent;
+            color: rgba(255, 255, 255, .35);
+            border: 1px solid rgba(255, 255, 255, .15);
+            clip-path: none;
+            font-size: 11px;
+            padding: 9px 28px;
+        }
+
+        .btn.sec:hover {
+            color: #fff;
+        }
+
+        .howto {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: rgba(255, 255, 255, .26);
+            text-align: center;
+            line-height: 2.1;
+            margin-top: 24px;
+            max-width: 330px;
+        }
+
+        .howto em {
+            color: rgba(0, 242, 255, .7);
+            font-style: normal;
+        }
+
+        .go-title {
+            font-size: clamp(30px, 7vw, 62px);
+            font-weight: 900;
+            letter-spacing: .1em;
+            color: #ff3366;
+            text-shadow: 0 0 40px rgba(255, 51, 102, .65);
+        }
+
+        .final-big {
+            font-size: clamp(52px, 11vw, 84px);
+            font-weight: 900;
+            text-shadow: 0 0 28px rgba(255, 255, 255, .5);
+            margin: 6px 0 2px;
+        }
+
+        .final-sub {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: rgba(255, 255, 255, .38);
+            text-align: center;
+            margin-bottom: 28px;
+            line-height: 2.1;
+        }
+
+        .new-hs {
+            color: #ffcc00;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        #boss-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(24px, 5vw, 50px);
+            font-weight: 900;
+            letter-spacing: .14em;
+            color: #ff3300;
+            text-shadow: 0 0 50px #ff3300, 0 0 100px #ff0000;
+            z-index: 30;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .4s;
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        #chaos-alert {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: clamp(22px, 4.5vw, 46px);
+            font-weight: 900;
+            letter-spacing: .12em;
+            color: #ff00ff;
+            text-shadow: 0 0 50px #ff00ff, 0 0 100px #cc00ff;
+            z-index: 30;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .4s;
+            text-align: center;
+        }
+
+        #flash {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+        }
+
+        /* New styles for Victory Screen */
+        #scr-victory .go-title {
+            color: #ffcc00;
+            text-shadow: 0 0 40px rgba(255, 204, 0, .65);
+        }
+
+        /* Login & Settings Input Fields */
+        input[type="text"] {
+            background: rgba(255, 255, 255, .05);
+            border: 1px solid rgba(0, 242, 255, .3);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 16px;
+            padding: 12px 20px;
+            width: 280px;
+            margin-bottom: 20px;
+            text-align: center;
+            outline: none;
+            letter-spacing: 2px;
+            transition: all .2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #00f2ff;
+            box-shadow: 0 0 15px rgba(0, 242, 255, .4);
+            background: rgba(255, 255, 255, .1);
+        }
+
+        .btn-small {
+            background: transparent;
+            color: rgba(255, 255, 255, .4);
+            border: 1px solid rgba(255, 255, 255, .15);
+            padding: 6px 14px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            margin-top: 15px;
+            transition: all .2s;
+        }
+
+        .btn-small:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, .4);
+        }
+
+        #btn-settings {
+            position: fixed;
+            top: calc(16px + env(safe-area-inset-top));
+            right: calc(16px + env(safe-area-inset-right));
+            z-index: 10;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.5;
+            transition: opacity .2s;
+        }
+
+        #btn-settings:hover {
+            opacity: 1;
+        }
