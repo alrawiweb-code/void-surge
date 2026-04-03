@@ -1,0 +1,10 @@
+node_modules/
+.idea/
+.DS_Store
+android/.gradle/
+android/app/build/
+android/local.properties
+capture/
+android/.idea/
+*.keystore
+!voidsurge.keystore
