@@ -28,4 +28,16 @@ public class MainActivity extends BridgeActivity {
                 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_FULLSCREEN);
     }
+
+    @Override
+    public void onBackPressed() {
+        if (this.bridge != null && this.bridge.getWebView() != null) {
+            runOnUiThread(() -> {
+                this.bridge.getWebView().evaluateJavascript(
+                        "var e = document.createEvent('Events'); e.initEvent('backbutton', true, false); document.dispatchEvent(e);", null);
+            });
+        } else {
+            super.onBackPressed();
+        }
+    }
 }

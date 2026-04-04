@@ -48,4 +48,12 @@ public class NativeBridgePlugin extends Plugin {
         ret.put("highScore", Math.max(score, currentHighScore));
         call.resolve(ret);
     }
+
+    @PluginMethod
+    public void exitApp(PluginCall call) {
+        if (getActivity() != null) {
+            getActivity().finishAffinity();
+        }
+        call.resolve();
+    }
 }

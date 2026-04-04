@@ -29,6 +29,9 @@
         const scrOver = document.getElementById('scr-over');
         const scrVictory = document.getElementById('scr-victory');
         const scrPause = document.getElementById('scr-pause');
+        const scrConfirm = document.getElementById('scr-confirm');
+        const btnConfirmYes = document.getElementById('btn-confirm-yes');
+        const btnConfirmNo = document.getElementById('btn-confirm-no');
         const puEls = { shield: document.getElementById('pu-shield'), slow: document.getElementById('pu-slow'), magnet: document.getElementById('pu-magnet') };
         const ptEls = { shield: document.getElementById('pt-shield'), slow: document.getElementById('pt-slow'), magnet: document.getElementById('pt-magnet') };
         const ldots = [document.getElementById('ld0'), document.getElementById('ld1'), document.getElementById('ld2')];
@@ -672,13 +675,55 @@
         }
 
         /* ════════════════════════════════════════════════
-           10. INPUT
+           10. INPUT & RESUME FLOW
         ════════════════════════════════════════════════ */
+        function startResumeCountdown() {
+            if (gameState === 'RESUMING') return;
+            gameState = 'RESUMING';
+            scrPause.classList.remove('on');
+            var overlay = document.getElementById('countdown-overlay');
+            var cdElem = document.getElementById('countdown-text');
+            overlay.style.opacity = '1';
+            
+            var steps = [3, 2, 1, 'GO!'];
+            var stepIdx = 0;
+            
+            function nextStep() {
+                if (stepIdx >= steps.length) {
+                    overlay.style.opacity = '0';
+                    gameState = 'PLAY';
+                    prevTS = null;
+                    btnPause.style.display = 'block';
+                    return;
+                }
+                
+                var val = steps[stepIdx];
+                cdElem.textContent = val;
+                
+                cdElem.className = 'pop';
+                setTimeout(function() {
+                    if (val === 'GO!') {
+                        cdElem.className = 'go-anim';
+                        setTimeout(nextStep, 600);
+                    } else {
+                        cdElem.className = '';
+                        setTimeout(nextStep, 200);
+                    }
+                }, val === 'GO!' ? 50 : 800);
+                
+                if (val !== 'GO!') SFX.lane();
+                else SFX.powerup();
+                
+                stepIdx++;
+            }
+            nextStep();
+        }
+
         window.addEventListener('keydown', function (e) {
             if (e.repeat) return;
             if (e.code === 'KeyP' || e.code === 'Escape') {
                 if (gameState === 'PLAY') { gameState = 'PAUSE'; scrPause.classList.add('on'); btnPause.style.display = 'none'; return; }
-                if (gameState === 'PAUSE') { gameState = 'PLAY'; prevTS = null; scrPause.classList.remove('on'); btnPause.style.display = 'block'; return; }
+                if (gameState === 'PAUSE') { startResumeCountdown(); return; }
             }
             if (gameState !== 'PLAY') return;
             if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); player.move(-1); }
@@ -701,7 +746,7 @@
         document.getElementById('btn-start').addEventListener('click', startGame);
         document.getElementById('btn-restart').addEventListener('click', startGame);
         document.getElementById('btn-restart-win').addEventListener('click', startGame);
-        document.getElementById('btn-resume').addEventListener('click', function () { gameState = 'PLAY'; prevTS = null; scrPause.classList.remove('on'); btnPause.style.display = 'block'; });
+        document.getElementById('btn-resume').addEventListener('click', startResumeCountdown);
         document.getElementById('btn-quit').addEventListener('click', function () { playBGMusic(); gameState = 'MENU'; scrPause.classList.remove('on'); scrStart.classList.add('on'); btnPause.style.display = 'none'; });
         btnPause.addEventListener('click', function () { if (gameState === 'PLAY') { gameState = 'PAUSE'; scrPause.classList.add('on'); btnPause.style.display = 'none'; } });
 
@@ -809,6 +854,42 @@
                     audioCtx.resume();
                 }
             }
+        });
+
+        // Back Button & Confirm Dialog Logic
+        function handleBackButton() {
+            if (gameState === 'PLAY') {
+                gameState = 'CONFIRM';
+                scrConfirm.classList.add('on');
+                btnPause.style.display = 'none';
+            } else if (gameState === 'CONFIRM') {
+                btnConfirmNo.click();
+            } else if (gameState === 'PAUSE' || gameState === 'MENU' || gameState === 'OVER' || gameState === 'VICTORY' || gameState === 'SETTINGS') {
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBridge) {
+                    window.Capacitor.Plugins.NativeBridge.exitApp();
+                } else if (navigator.app && navigator.app.exitApp) {
+                    navigator.app.exitApp();
+                }
+            }
+        }
+
+        // NativeBridgePlugin now fires "backbutton" document event
+        document.addEventListener('backbutton', handleBackButton, false);
+
+        if(btnConfirmYes) btnConfirmYes.addEventListener('click', function() {
+            scrConfirm.classList.remove('on');
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBridge) {
+                window.Capacitor.Plugins.NativeBridge.exitApp();
+            } else if (navigator.app && navigator.app.exitApp) {
+                navigator.app.exitApp();
+            } else {
+                playBGMusic(); gameState = 'MENU'; scrStart.classList.add('on');
+            }
+        });
+
+        if(btnConfirmNo) btnConfirmNo.addEventListener('click', function() {
+            scrConfirm.classList.remove('on');
+            startResumeCountdown();
         });
 
         requestAnimationFrame(loop);

@@ -114,8 +114,21 @@
 
     <div id="boss-alert">⚠ BOSS INCOMING ⚠<br><span style="font-size:.55em;letter-spacing:.05em;" id="boss-sub">DEFEAT
             TO ADVANCE</span></div>
+
+    <div class="screen" id="scr-confirm">
+        <div class="go-title" style="color:#00f2ff;text-shadow:0 0 40px rgba(0,242,255,.55);">QUIT?</div>
+        <div class="sub" style="margin-bottom:30px;">ARE YOU SURE YOU WANT TO QUIT?</div>
+        <div class="btn-row">
+            <button class="btn sec" id="btn-confirm-yes">YES</button>
+            <button class="btn" id="btn-confirm-no">NO</button>
+        </div>
+    </div>
     <div id="chaos-alert">⚡ LEVEL UP ⚡</div>
     <div id="flash"></div>
+
+    <div id="countdown-overlay">
+        <div id="countdown-text"></div>
+    </div>
 
     <script src="index.js"></script>
 </body>
