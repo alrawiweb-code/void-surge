@@ -139,18 +139,21 @@
             transform: scale(1.12);
         }
 
+        #pu-shield { color: #00f2ff; border-color: rgba(0, 242, 255, 0.1); background: rgba(0, 242, 255, 0.03); }
         #pu-shield.on {
-            box-shadow: 0 0 16px #00f2ff;
+            box-shadow: 0 0 20px #00f2ff;
             border-color: #00f2ff;
         }
 
+        #pu-slow { color: #ffcc00; border-color: rgba(255, 204, 0, 0.1); background: rgba(255, 204, 0, 0.03); }
         #pu-slow.on {
-            box-shadow: 0 0 16px #ffcc00;
+            box-shadow: 0 0 20px #ffcc00;
             border-color: #ffcc00;
         }
 
+        #pu-magnet { color: #ff00ff; border-color: rgba(255, 0, 255, 0.1); background: rgba(255, 0, 255, 0.03); }
         #pu-magnet.on {
-            box-shadow: 0 0 16px #ff00ff;
+            box-shadow: 0 0 20px #ff00ff;
             border-color: #ff00ff;
         }
 
@@ -215,6 +218,46 @@
         .screen.on {
             opacity: 1;
             pointer-events: all;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin: 30px auto;
+            max-width: 400px;
+        }
+
+        .level-btn {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 242, 255, 0.4);
+            color: #00f2ff;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.1);
+        }
+
+        .level-btn:hover {
+            background: rgba(0, 242, 255, 0.2);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.6);
+            border-color: #00f2ff;
+            transform: scale(1.05);
+        }
+
+        .level-btn.locked {
+            border-color: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.5);
+            box-shadow: none;
+            pointer-events: none;
         }
 
         .gtitle {

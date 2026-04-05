@@ -10,10 +10,20 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="manifest" href="site.webmanifest">
     <meta name="theme-color" content="#000000">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
 </head>
 
 <body>
+
+
+    <div class="screen" id="scr-checkpoint" style="z-index: 9000;">
+        <div class="gtitle" style="font-size: clamp(30px, 8vw, 60px);">CHECKPOINT</div>
+        <div class="sub" id="chkpt-obj" style="font-size: clamp(20px, 5vw, 32px); color: #00f2ff; text-shadow: 0 0 15px rgba(0,242,255,0.8); margin-top: 30px;"></div>
+    </div>
+
     <canvas id="c"></canvas>
 
     <div id="hud">
@@ -21,6 +31,7 @@
         <div class="sw" style="align-items:flex-end"><span class="lbl">BEST</span><span id="best-val">0</span></div>
     </div>
     <div id="wave-lbl">LEVEL 1 / 100</div>
+    <div id="chkpt-hud-obj" style="display:none;position:fixed;top:calc(36px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:2px;color:#00f2ff;text-shadow:0 0 10px rgba(0,242,255,0.8);pointer-events:none;z-index:10;white-space:nowrap;"></div>
     <div id="combo">✦ x2 COMBO ✦</div>
     <div id="pbar">
         <div class="pu-wrap">
@@ -33,7 +44,7 @@
         </div>
         <div class="pu-wrap">
             <div class="pu-timer" id="pt-magnet"></div>
-            <div class="pu" id="pu-magnet">💎</div>
+            <div class="pu" id="pu-magnet">🧲</div>
         </div>
     </div>
     <div id="ldots">
@@ -55,10 +66,23 @@
         <div class="gtitle">VOID<br>SURGE</div>
         <div class="sub"></div>
         <div class="sub" id="welcome-msg" style="color:#00f2ff; font-size:12px; margin-top:-20px;">WELCOME, PLAYER</div>
-        <button class="btn" id="btn-start">SURGE IN</button>
-        <div class="howto" style="font-size: 14px; color: #fff; text-shadow: 0 0 10px #00f2ff; letter-spacing: 2px;">
-            REACH 100 LEVELS TO GET PRIZE.
+        <div class="btn-row">
+            <button class="btn" id="btn-endless">ENDLESS</button>
+            <button class="btn" id="btn-levels">LEVELS</button>
+            <button class="btn sec" id="btn-resume-chkpt-start" style="display:none;">RESUME L1</button>
         </div>
+        <div class="howto" id="mode-desc" style="font-size: 14px; color: #fff; text-shadow: 0 0 10px #00f2ff; letter-spacing: 2px;">
+            SWIPE UP/DOWN TO DODGE · TAP TO FLIP LANE<br>
+            COLLECT <em>GEMS</em> · AVOID <em>OBSTACLES</em><br>
+            SURVIVE THE <em>BOSS</em> TO ADVANCE
+        </div>
+    </div>
+
+    <div class="screen" id="scr-levels">
+        <div class="go-title" style="color:#ffcc00;text-shadow:0 0 40px rgba(255,204,0,.55);">SELECT LEVEL</div>
+        <div class="level-grid" id="level-grid"></div>
+        <br>
+        <button class="btn-small" id="btn-close-levels">BACK TO MENU</button>
     </div>
 
     <div class="screen" id="scr-settings">
@@ -87,7 +111,8 @@
         <div class="final-big" id="final-score">0</div>
         <div class="final-sub" id="final-sub">—</div>
         <div class="btn-row">
-            <button class="btn" id="btn-restart">SURGE AGAIN</button>
+            <button class="btn" id="btn-resume-chkpt-over" style="display:none;">RETRY LEVEL</button>
+            <button class="btn sec" id="btn-restart">MAIN MENU</button>
         </div>
     </div>
 
