@@ -81,7 +81,7 @@
         let gemsGot = 0;
         let dodges = 0;
 
-        let puTime = { shield: 0, slow: 0, magnet: 0 };
+        let puTime = window.puTime = { shield: 0, slow: 0, magnet: 0 };
         let chaos = false;
         let chaosFlash = 0;
         let obsTimer = 1000;
@@ -125,33 +125,43 @@
 
         const LEVEL_DATA = [
             null,
+            // L1: Void Entry — shorter survival, teach lane-swapping early
             { multi: 1.0, title: "Void Entry",
-              desc: ["SURVIVE 20S", "COLLECT 10 GEMS", "REACH LANE 3"],
-              checks: [ ()=>elapsed-chkptStartTime>=20000, ()=>levelGemsGot>=10, ()=>player&&player.lane===2 ] },
+              desc: ["SURVIVE 15S", "COLLECT 10 GEMS", "SWAP LANES 5X"],
+              checks: [ ()=>elapsed-chkptStartTime>=15000, ()=>levelGemsGot>=10, ()=>levelSwaps>=5 ] },
+            // L2: Static Field — gentler gem ramp, replace anti-fun gem-avoid with time survival
             { multi: 1.2, title: "Static Field",
-              desc: ["DODGE 15 BLOCKS", "COLLECT 15 GEMS", "30S AVOID GEMS"],
-              checks: [ ()=>levelDodges>=15, ()=>levelGemsGot>=15, ()=>noGemTime>=30000 ] },
+              desc: ["DODGE 15 BLOCKS", "COLLECT 12 GEMS", "SURVIVE 25S"],
+              checks: [ ()=>levelDodges>=15, ()=>levelGemsGot>=12, ()=>elapsed-chkptStartTime>=25000 ] },
+            // L3: Surge Wall — lower combo spike (4x), replace "survive burst" with active dodge goal
             { multi: 1.35, title: "Surge Wall",
-              desc: ["HIT 5X COMBO", "COLLECT 20 GEMS", "SURVIVE BURST"],
-              checks: [ ()=>levelMaxCombo>=5, ()=>levelGemsGot>=20, ()=>elapsed-chkptStartTime>=15000 ] },
+              desc: ["HIT 4X COMBO", "COLLECT 20 GEMS", "DODGE 10 BLOCKS"],
+              checks: [ ()=>levelMaxCombo>=4, ()=>levelGemsGot>=20, ()=>levelDodges>=10 ] },
+            // L4: Neon Cascade — more meaningful dodge count (5→8), keep speed run
             { multi: 1.5, title: "Neon Cascade",
-              desc: ["DODGE 5 QUICKLY", "COLLECT 25 GEMS", "SPEED RUN 15S"],
-              checks: [ ()=>levelDodges>=5, ()=>levelGemsGot>=25, ()=>elapsed-chkptStartTime>=15000 ] },
+              desc: ["DODGE 8 BLOCKS", "COLLECT 25 GEMS", "SPEED RUN 15S"],
+              checks: [ ()=>levelDodges>=8, ()=>levelGemsGot>=25, ()=>elapsed-chkptStartTime>=15000 ] },
+            // L5: Dual Stream — reduce no-powerup window from 20s to 15s (less punishing)
             { multi: 1.65, title: "Dual Stream",
-              desc: ["LANE SWAP 10X", "COLLECT 30 GEMS", "NO POWERUPS 20S"],
-              checks: [ ()=>levelSwaps>=10, ()=>levelGemsGot>=30, ()=>powerupsUsed===0 && elapsed-chkptStartTime>=20000 ] },
+              desc: ["LANE SWAP 10X", "COLLECT 30 GEMS", "NO POWERUPS 15S"],
+              checks: [ ()=>levelSwaps>=10, ()=>levelGemsGot>=30, ()=>powerupsUsed===0 && elapsed-chkptStartTime>=15000 ] },
+            // L6: Void Fracture — reduce chaos survive to 15s, logarithmic combo (6x)
             { multi: 1.8, title: "Void Fracture",
-              desc: ["SURVIVE CHAOS 20S", "COLLECT 35 GEMS", "HIT 10X COMBO"],
-              checks: [ ()=>elapsed-chkptStartTime>=20000, ()=>levelGemsGot>=35, ()=>levelMaxCombo>=10 ] },
+              desc: ["SURVIVE CHAOS 15S", "COLLECT 35 GEMS", "HIT 6X COMBO"],
+              checks: [ ()=>elapsed-chkptStartTime>=15000, ()=>levelGemsGot>=35, ()=>levelMaxCombo>=6 ] },
+            // L7: Pulse Grid — replace 45s gem-avoid (worst offender) with lane swap challenge
             { multi: 2.0, title: "Pulse Grid",
-              desc: ["DODGE 10 BLOCKS", "COLLECT 40 GEMS", "45S AVOID GEMS"],
-              checks: [ ()=>levelDodges>=10, ()=>levelGemsGot>=40, ()=>noGemTime>=45000 ] },
+              desc: ["DODGE 10 BLOCKS", "COLLECT 38 GEMS", "LANE SWAP 15X"],
+              checks: [ ()=>levelDodges>=10, ()=>levelGemsGot>=38, ()=>levelSwaps>=15 ] },
+            // L8: Dark Matter — reduce blind time from 10s to 7s (less RNG-dependent), ease gem count
             { multi: 2.2, title: "Dark Matter",
-              desc: ["BLIND DODGE 10S", "COLLECT 45 GEMS", "SURVIVE FLICKER"],
-              checks: [ ()=>blindTime>=10000, ()=>levelGemsGot>=45, ()=>elapsed-chkptStartTime>=15000 ] },
+              desc: ["BLIND DODGE 7S", "COLLECT 42 GEMS", "SURVIVE FLICKER"],
+              checks: [ ()=>blindTime>=7000, ()=>levelGemsGot>=42, ()=>elapsed-chkptStartTime>=15000 ] },
+            // L9: Zero Barrier — active dodge instead of passive timer, logarithmic combo cap (8x)
             { multi: 2.4, title: "Zero Barrier",
-              desc: ["MAX SPEED 20S", "COLLECT 50 GEMS", "SURVIVE PREP"],
-              checks: [ ()=>elapsed-chkptStartTime>=20000, ()=>levelGemsGot>=50, ()=>elapsed-chkptStartTime>=15000 ] },
+              desc: ["DODGE 12 BLOCKS", "COLLECT 48 GEMS", "HIT 8X COMBO"],
+              checks: [ ()=>levelDodges>=12, ()=>levelGemsGot>=48, ()=>levelMaxCombo>=8 ] },
+            // L10: Void Core — handled manually via VoidCoreBoss HP phases
             { multi: 2.6, title: "Void Core",
               desc: ["PHASE 1", "PHASE 2", "PHASE 3"],
               checks: [ ()=>false, ()=>false, ()=>false ] } // Handled via VoidCoreBoss HP manually
@@ -846,7 +856,7 @@
                 if (chaosFlash > 650) { chaosFlash = 0; flashScreen('hsl(' + Math.round(Math.random() * 360) + ',100%,60%,0.04)', 250); }
             }
 
-            for (let k in puTime) if (puTime[k] > 0) puTime[k] = Math.max(0, puTime[k] - dt);
+            for (let k in puTime) if (puTime[k] > 0 && !window.infPowerups) puTime[k] = Math.max(0, puTime[k] - dt);
             updatePUBar();
             for (var i = 0; i < LANES; i++) {
                 ldots[i].style.background = player.lane === i ? LC[i] : 'rgba(255,255,255,0.12)';
