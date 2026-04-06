@@ -433,12 +433,17 @@
             if (this.trail.length > 10) this.trail.shift();
         };
         Player.prototype.draw = function () {
+            // Engine exhaust sparks from trail
             for (var i = 0; i < this.trail.length; i++) {
                 var p = this.trail[i];
+                var tRatio = i / this.trail.length;
                 ctx.save();
-                ctx.globalAlpha = (i / this.trail.length) * 0.38;
-                ctx.fillStyle = 'hsl(' + this.hue + ',100%,60%)';
-                ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, (this.w / 2) * (i / this.trail.length) * 0.65), 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = tRatio * (0.3 + Math.random() * 0.5);
+                ctx.globalCompositeOperation = 'screen';
+                ctx.fillStyle = 'hsl(' + this.hue + ',100%,' + (60 + Math.random() * 30) + '%)';
+                // Move trail backwards and add random jitter for spark effect
+                let jitterY = (Math.random() - 0.5) * this.w * 0.5 * (1 - tRatio);
+                ctx.beginPath(); ctx.arc(p.x - this.w * 1.2, p.y + jitterY, Math.max(0.5, (this.w * 0.25) * tRatio), 0, Math.PI * 2); ctx.fill();
                 ctx.restore();
             }
             if (this.inv > 0 && Math.floor(this.inv / 70) % 2 === 0) return;
@@ -449,14 +454,81 @@
                 ctx.lineWidth = 3; drawGlowFast(0, 0, '#00f2ff', this.w * 1.5, 0.6);
                 ctx.stroke();
             }
-            ctx.translate(Math.sin(this.t * 0.006) * 1.6, 0);
             var phue = 'hsl(' + Math.floor(this.hue) + ',100%,60%)';
-            drawGlowFast(0, 0, phue, this.w * 1.5, 0.7);
-            ctx.fillStyle = 'hsl(' + this.hue + ',100%,66%)';
-            ctx.beginPath(); var s = this.w / 2;
-            ctx.moveTo(0, -s); ctx.lineTo(s, 0); ctx.lineTo(0, s); ctx.lineTo(-s, 0); ctx.closePath(); ctx.fill();
-            ctx.globalAlpha = 0.5; ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(-s * 0.22, -s * 0.22, s * 0.22, 0, Math.PI * 2); ctx.fill();
+            drawGlowFast(0, 0, phue, this.w * 1.5, 0.5);
+            
+            // Jet exhaust flame (dynamic pulsing)
+            var flameLength = this.w * (1.2 + Math.random() * 0.8 + 0.3 * Math.sin(this.t * 0.08));
+            var flameY = this.w * (0.15 + Math.random() * 0.08);
+            ctx.globalCompositeOperation = 'screen';
+            
+            // Outer flame fading out
+            var fGrd = ctx.createLinearGradient(-this.w * 0.8, 0, -this.w * 0.8 - flameLength, 0);
+            fGrd.addColorStop(0, 'hsl(' + this.hue + ', 100%, 60%)');
+            fGrd.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = fGrd;
+            ctx.beginPath();
+            ctx.moveTo(-this.w * 0.8, flameY);
+            ctx.lineTo(-this.w * 0.8 - flameLength * 0.4, flameY * 1.4);
+            ctx.lineTo(-this.w * 0.8 - flameLength, 0);
+            ctx.lineTo(-this.w * 0.8 - flameLength * 0.4, -flameY * 1.4);
+            ctx.lineTo(-this.w * 0.8, -flameY);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Inner hot core
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.7 + Math.random() * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(-this.w * 0.8, flameY * 0.5);
+            ctx.lineTo(-this.w * 0.8 - flameLength * 0.6, 0);
+            ctx.lineTo(-this.w * 0.8, -flameY * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 1;
+            
+            var w = this.w * 0.85;
+            var h = this.w * 0.65;
+            
+            // Outer ship glowing stroke
+            ctx.strokeStyle = phue;
+            ctx.lineWidth = 3 * scale;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(w, 0);               // Nose
+            ctx.lineTo(-w*0.1, -h*0.35);    // Upper fuselage slope
+            ctx.lineTo(-w*0.4, -h);         // Upper wing tip
+            ctx.lineTo(-w*0.4, -h*0.35);    // Upper wing trailing edge
+            ctx.lineTo(-w*0.8, -h*0.25);    // Engine top
+            ctx.lineTo(-w*0.8, h*0.25);     // Engine bottom
+            ctx.lineTo(-w*0.4, h*0.35);     // Lower wing trailing edge
+            ctx.lineTo(-w*0.4, h);          // Lower wing tip
+            ctx.lineTo(-w*0.1, h*0.35);     // Lower fuselage slope
+            ctx.closePath();
+            
+            // Ship panel details
+            ctx.moveTo(-w*0.1, -h*0.35);
+            ctx.lineTo(-w*0.1, h*0.35); // Vertical split
+            ctx.moveTo(w, 0);
+            ctx.lineTo(-w*0.8, 0); // Center line
+            
+            ctx.stroke();
+
+            // Cockpit bright accent
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(w*0.45, 0);
+            ctx.lineTo(0, -h*0.15);
+            ctx.lineTo(-w*0.1, 0);
+            ctx.lineTo(0, h*0.15);
+            ctx.closePath();
+            ctx.fill();
+            
             ctx.restore();
         };
         Player.prototype.hitbox = function () { var pad = 7 * scale; return { x: this.x - this.w / 2 + pad, y: this.y - this.h / 2 + pad, w: this.w - pad * 2, h: this.h - pad * 2 }; };
