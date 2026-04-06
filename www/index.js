@@ -43,6 +43,8 @@
         let gameState = 'LOGIN'; // Initial state check
         let gameMode = 'endless'; // 'endless' or 'levels'
         let levelSegment = 0; // 0,1,2 = checkpoints, 3 = boss
+        let lastPlayedMode = 'endless'; // Track for Retry button
+        let lastPlayedLevel = 1;        // Track for Retry button
         let score = 0;
         let endlessBest = +(localStorage.getItem('vs_endless_best') || 0);
         let levelSaves = JSON.parse(localStorage.getItem('vs_level_save') || '{"level":1,"unlocked":1,"checkpoint":0}');
@@ -1128,6 +1130,8 @@
         }
 
         function endGame() {
+            lastPlayedMode = gameMode;   // Remember for Retry
+            lastPlayedLevel = level;     // Remember for Retry
             gameState = 'OVER'; btnPause.style.display = 'none'; SFX.die(); doShake(16); flashScreen('#ff000066', 500);
             spawnParts(player.x, player.y, 45, '#ff3366', { spread: 10, size: 4, grav: 0.18 });
             finalScEl.textContent = Math.floor(score);
@@ -1260,6 +1264,10 @@
         document.getElementById('btn-restart-win').addEventListener('click', function() { startGame(gameMode, false); });
         document.getElementById('btn-resume-chkpt-start').addEventListener('click', function() { startGame('levels', true); });
         document.getElementById('btn-resume-chkpt-over').addEventListener('click', function() { startGame('levels', true); });
+        document.getElementById('btn-retry').addEventListener('click', function() {
+            // Instantly restart the same mode and level from scratch (no checkpoint)
+            startGame(lastPlayedMode, false, lastPlayedMode === 'levels' ? lastPlayedLevel : null);
+        });
         document.getElementById('btn-resume').addEventListener('click', startResumeCountdown);
         document.getElementById('btn-quit').addEventListener('click', function () { playBGMusic(); gameState = 'MENU'; scrPause.classList.remove('on'); scrStart.classList.add('on'); btnPause.style.display = 'none'; });
         btnPause.addEventListener('click', function () { if (gameState === 'PLAY') { gameState = 'PAUSE'; scrPause.classList.add('on'); btnPause.style.display = 'none'; } });
