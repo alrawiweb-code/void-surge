@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Void Surge — Enhanced Skins Preview</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #04060f;
+    --panel: #080d1a;
+    --border: #1a2540;
+    --cyan: #00f5ff;
+    --magenta: #ff00cc;
+    --gold: #ffd700;
+    --green: #00ff88;
+    --orange: #ff6600;
+    --red: #ff2244;
+    --purple: #8800ff;
+    --text: #c8d8ff;
+    --dim: #3a4a6a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,245,255,0.015) 2px,
+      rgba(0,245,255,0.015) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
+
+  /* Star field */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 5%, rgba(200,220,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 25%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 10%, rgba(200,220,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(2px 2px at 20% 80%, rgba(0,245,255,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 60% 70%, rgba(255,0,204,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.5) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    text-align: center;
+    padding: 40px 20px 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--cyan);
+    text-shadow:
+      0 0 10px var(--cyan),
+      0 0 30px rgba(0,245,255,0.5),
+      0 0 60px rgba(0,245,255,0.2);
+  }
+
+  header p {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  /* Gem counter */
+  .gem-bar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px auto;
+    background: rgba(0,245,255,0.05);
+    border: 1px solid rgba(0,245,255,0.2);
+    border-radius: 8px;
+    padding: 10px 24px;
+    width: fit-content;
+    position: relative;
+    z-index: 1;
+  }
+
+  .gem-bar span {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan);
+  }
+
+  .gem-icon { font-size: 1.4rem; }
+
+  /* Skins grid */
+  .skins-section {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.4em;
+    color: var(--dim);
+    text-align: center;
+    margin-bottom: 24px;
+    text-transform: uppercase;
+  }
+
+  .skins-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+  }
+
+  .skin-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: hidden;
+  }
+
+  .skin-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, rgba(0,245,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .skin-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(0,245,255,0.4);
+    box-shadow: 0 8px 30px rgba(0,245,255,0.1);
+  }
+
+  .skin-card.selected {
+    border-color: var(--cyan);
+    box-shadow:
+      0 0 20px rgba(0,245,255,0.3),
+      inset 0 0 20px rgba(0,245,255,0.05);
+  }
+
+  .skin-card.locked {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .skin-card.locked:hover {
+    transform: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    width: 140px;
+    height: 100px;
+  }
+
+  .skin-canvas {
+    width: 140px;
+    height: 100px;
+    display: block;
+  }
+
+  /* Lock overlay */
+  .lock-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 6, 15, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 1.8rem;
+    pointer-events: none;
+  }
+
+  .skin-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .skin-cost {
+    font-size: 0.8rem;
+    color: var(--gold);
+    text-shadow: 0 0 8px rgba(255,215,0,0.5);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .skin-tag {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.55rem;
+    letter-spacing: 0.25em;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+
+  .tag-equipped {
+    background: rgba(0,245,255,0.15);
+    color: var(--cyan);
+    border: 1px solid rgba(0,245,255,0.4);
+    text-shadow: 0 0 6px var(--cyan);
+  }
+
+  .tag-unlocked {
+    background: rgba(0,255,136,0.1);
+    color: var(--green);
+    border: 1px solid rgba(0,255,136,0.3);
+  }
+
+  .tag-locked {
+    background: rgba(58,74,106,0.3);
+    color: var(--dim);
+    border: 1px solid var(--border);
+  }
+
+  /* Selected glow ring */
+  .skin-card.selected::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 12px;
+    background: transparent;
+    border: 2px solid var(--cyan);
+    box-shadow: 0 0 12px var(--cyan), inset 0 0 12px rgba(0,245,255,0.1);
+    pointer-events: none;
+    animation: ringPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: rgba(8,13,26,0.95);
+    border: 1px solid var(--red);
+    color: var(--red);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    padding: 12px 24px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(255,34,68,0.3);
+    z-index: 9999;
+    transition: transform 0.3s ease;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  #toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  #toast.success {
+    border-color: var(--green);
+    color: var(--green);
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+  }
+
+  /* Unlock burst animation */
+  @keyframes unlockBurst {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(2.5); opacity: 0; }
+  }
+
+  .unlock-burst {
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    border: 2px solid var(--green);
+    animation: unlockBurst 0.6s ease-out forwards;
+    pointer-events: none;
+  }
+
+  /* Divider */
+  .divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 30px 0;
+  }
+
+  /* Code block */
+  .code-section {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .code-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.35em;
+    color: var(--dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  pre {
+    background: #020408;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: #8899cc;
+    overflow-x: auto;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  pre .kw { color: #00f5ff; }
+  pre .fn { color: #ff88cc; }
+  pre .str { color: #88ff88; }
+  pre .cm { color: #445566; font-style: italic; }
+  pre .num { color: #ffcc44; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ VOID SURGE</h1>
+  <p>Enhanced Skin System — Visual Preview</p>
+</header>
+
+<div class="gem-bar">
+  <span class="gem-icon">💎</span>
+  <span id="gemCount">1500</span>
+  <span style="font-size:0.7rem;color:var(--dim);letter-spacing:0.2em;">GEMS</span>
+</div>
+
+<div class="skins-section">
+  <div class="section-title">— Select Your Craft —</div>
+  <div class="skins-grid" id="skinsGrid"></div>
+</div>
+
+<div id="toast"></div>
+
+<hr class="divider" style="max-width:860px;margin:30px auto;">
+
+<!-- ============================================================
+     INTEGRATION CODE OUTPUT
+     ============================================================ -->
+<div class="code-section">
+  <div class="code-label">📋 Drop-in Integration Code — Replace your drawSkinShape() function</div>
+  <pre id="codeOutput"></pre>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  SKIN DEFINITIONS
+// ─────────────────────────────────────────────────────────────
+const SKINS = [
+  { id: 'default-jet', name: 'Default Jet', cost: 0,    hue: 195, free: true  },
+  { id: 'ship',        name: 'Raptor Ship', cost: 500,  hue: 280, free: false },
+  { id: 'scooter',     name: 'Hover Scout', cost: 1000, hue: 120, free: false },
+  { id: 'super-jet',   name: 'Super Jet',   cost: 2000, hue: 35,  free: false },
+];
+
+// ─────────────────────────────────────────────────────────────
+//  LOCALSTORAGE STATE
+// ─────────────────────────────────────────────────────────────
+function getState() {
+  return {
+    gems:     parseInt(localStorage.getItem('totalGems') || '1500'),
+    unlocked: JSON.parse(localStorage.getItem('unlockedSkins') || '["default-jet"]'),
+    selected: localStorage.getItem('selectedSkin') || 'default-jet',
+  };
+}
+function saveState(s) {
+  localStorage.setItem('totalGems',     s.gems);
+  localStorage.setItem('unlockedSkins', JSON.stringify(s.unlocked));
+  localStorage.setItem('selectedSkin',  s.selected);
+}
+
+let state = getState();
+
+// ─────────────────────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='error') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (type === 'success' ? 'success' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = '', 2200);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ENHANCED REALISTIC drawSkinShape()
+// ─────────────────────────────────────────────────────────────
+function drawSkinShape(ctx, skinId, w, h, hue, t, isPreview) {
+  const phue  = `hsl(${Math.floor(hue)},100%,60%)`;
+  const phue2 = `hsl(${Math.floor(hue+40)},100%,75%)`;
+  const glow  = `hsl(${Math.floor(hue)},100%,80%)`;
+
+  ctx.lineJoin = 'round';
+  ctx.lineCap  = 'round';
+  ctx.lineWidth = isPreview ? 1.5 : Math.max(2, 2.5);
+
+  // ── THRUSTER EXHAUST (behind craft, non-preview only) ──────
+  if (!isPreview) {
+    const fl  = w * (1.1 + Math.sin(t * 0.09) * 0.4 + Math.random() * 0.3);
+    const fy  = w * (0.10 + Math.sin(t * 0.13) * 0.04);
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+
+    // Outer cone — wide warm glow
+    const g1 = ctx.createLinearGradient(-w * 0.75, 0, -w * 0.75 - fl, 0);
+    g1.addColorStop(0,   `hsla(${hue},100%,70%,0.9)`);
+    g1.addColorStop(0.3, `hsla(${hue+20},100%,65%,0.6)`);
+    g1.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = g1;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.75,  fy);
+    ctx.quadraticCurveTo(-w * 0.75 - fl * 0.5,  fy * 2.2, -w * 0.75 - fl,  0);
+    ctx.quadraticCurveTo(-w * 0.75 - fl * 0.5, -fy * 2.2, -w * 0.75, -fy);
+    ctx.closePath();
+    ctx.fill();
+
+    // Inner bright core
+    const g2 = ctx.createLinearGradient(-w * 0.75, 0, -w * 0.75 - fl * 0.7, 0);
+    g2.addColorStop(0,   '#ffffff');
+    g2.addColorStop(0.2, `hsla(${hue},100%,90%,0.9)`);
+    g2.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = g2;
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.75,  fy * 0.4);
+    ctx.quadraticCurveTo(-w * 0.75 - fl * 0.6, fy * 0.5, -w * 0.75 - fl * 0.7, 0);
+    ctx.quadraticCurveTo(-w * 0.75 - fl * 0.6, -fy * 0.5, -w * 0.75, -fy * 0.4);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  }
+
+  // ─────────────────────────────────────────────────────────
+  //  DEFAULT JET  (sleek interceptor silhouette)
+  // ─────────────────────────────────────────────────────────
+  if (skinId === 'default-jet') {
+    const sw = w * 0.9, sh = w * 0.38;
+
+    // Hull body gradient fill
+    const bg = ctx.createLinearGradient(-sw, 0, sw, 0);
+    bg.addColorStop(0,   `hsla(${hue},60%,12%,0.9)`);
+    bg.addColorStop(0.5, `hsla(${hue},70%,22%,0.95)`);
+    bg.addColorStop(1,   `hsla(${hue},80%,30%,0.9)`);
+    ctx.fillStyle = bg;
+
+    // Main fuselage — tapered bullet shape
+    ctx.beginPath();
+    ctx.moveTo(sw, 0);                          // nose tip
+    ctx.bezierCurveTo(sw*0.6,-sh*0.3, sw*0.1,-sh*0.95, -sw*0.5,-sh*0.95);
+    ctx.lineTo(-sw*0.75, -sh*0.6);
+    ctx.lineTo(-sw*0.95, -sh*0.15);             // tail fin root top
+    ctx.lineTo(-sw*0.75,  0);
+    ctx.lineTo(-sw*0.95,  sh*0.15);             // tail fin root bottom
+    ctx.lineTo(-sw*0.75,  sh*0.6);
+    ctx.lineTo(-sw*0.5,   sh*0.95);
+    ctx.bezierCurveTo(sw*0.1, sh*0.95, sw*0.6, sh*0.3, sw, 0);
+    ctx.closePath();
+    ctx.fill();
+
+    // Neon stroke outline
+    ctx.strokeStyle = phue;
+    ctx.shadowColor  = glow;
+    ctx.shadowBlur   = isPreview ? 6 : 14;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Top swept delta wing
+    ctx.beginPath();
+    ctx.moveTo(sw*0.1, -sh*0.9);
+    ctx.lineTo(-sw*0.4, -sh*2.0);              // wingtip
+    ctx.lineTo(-sw*0.85, -sh*0.7);
+    ctx.closePath();
+    const wg1 = ctx.createLinearGradient(0,-sh*2,0,0);
+    wg1.addColorStop(0, `hsla(${hue},100%,50%,0.15)`);
+    wg1.addColorStop(1, `hsla(${hue},100%,50%,0.55)`);
+    ctx.fillStyle = wg1;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue},100%,65%,0.8)`;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 4 : 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Bottom wing mirror
+    ctx.beginPath();
+    ctx.moveTo(sw*0.1,  sh*0.9);
+    ctx.lineTo(-sw*0.4,  sh*2.0);
+    ctx.lineTo(-sw*0.85, sh*0.7);
+    ctx.closePath();
+    ctx.fillStyle = wg1;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue},100%,65%,0.8)`;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 4 : 10;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Canopy
+    ctx.beginPath();
+    ctx.ellipse(sw*0.35, 0, sw*0.22, sh*0.28, 0, 0, Math.PI*2);
+    const cg = ctx.createRadialGradient(sw*0.4,-sh*0.1, 0, sw*0.35,0, sw*0.22);
+    cg.addColorStop(0, 'rgba(255,255,255,0.9)');
+    cg.addColorStop(0.4,'rgba(180,240,255,0.5)');
+    cg.addColorStop(1, 'rgba(0,100,180,0.1)');
+    ctx.fillStyle = cg;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+
+    // Engine intake stripe
+    ctx.beginPath();
+    ctx.moveTo(-sw*0.5, -sh*0.5);
+    ctx.lineTo(-sw*0.5,  sh*0.5);
+    ctx.strokeStyle = `hsla(${hue},100%,70%,0.7)`;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Panel detail lines
+    ctx.strokeStyle = `hsla(${hue},60%,60%,0.4)`;
+    ctx.lineWidth = isPreview ? 0.7 : 1;
+    ctx.beginPath();
+    ctx.moveTo(sw*0.5,  sh*0.12); ctx.lineTo(-sw*0.3, sh*0.55);
+    ctx.moveTo(sw*0.5, -sh*0.12); ctx.lineTo(-sw*0.3,-sh*0.55);
+    ctx.stroke();
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+
+  // ─────────────────────────────────────────────────────────
+  //  RAPTOR SHIP  (heavy gunship / destroyer)
+  // ─────────────────────────────────────────────────────────
+  } else if (skinId === 'ship') {
+    const sw = w * 0.95, sh = w * 0.75;
+
+    // Main hull
+    const hg = ctx.createLinearGradient(-sw, 0, sw, 0);
+    hg.addColorStop(0,   `hsla(${hue},50%,10%,0.95)`);
+    hg.addColorStop(0.6, `hsla(${hue},60%,20%,0.95)`);
+    hg.addColorStop(1,   `hsla(${hue},80%,28%,0.9)`);
+    ctx.fillStyle = hg;
+
+    ctx.beginPath();
+    ctx.moveTo(sw, 0);
+    ctx.lineTo(sw*0.5,  -sh*0.22);
+    ctx.lineTo(-sw*0.1, -sh*0.55);
+    ctx.lineTo(-sw*0.55,-sh*0.55);
+    ctx.lineTo(-sw*0.75,-sh*0.3);
+    ctx.lineTo(-sw*0.85, 0);
+    ctx.lineTo(-sw*0.75, sh*0.3);
+    ctx.lineTo(-sw*0.55, sh*0.55);
+    ctx.lineTo(-sw*0.1,  sh*0.55);
+    ctx.lineTo(sw*0.5,   sh*0.22);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = phue;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 7 : 18;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Upper swept wing
+    ctx.beginPath();
+    ctx.moveTo(sw*0.3,  -sh*0.22);
+    ctx.lineTo(-sw*0.1, -sh*1.05);
+    ctx.lineTo(-sw*0.7, -sh*0.55);
+    ctx.closePath();
+    const ug = ctx.createLinearGradient(0,-sh,0,0);
+    ug.addColorStop(0, `hsla(${hue},100%,50%,0.12)`);
+    ug.addColorStop(1, `hsla(${hue},100%,60%,0.5)`);
+    ctx.fillStyle = ug;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue},100%,68%,0.85)`;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Lower wing mirror
+    ctx.beginPath();
+    ctx.moveTo(sw*0.3,   sh*0.22);
+    ctx.lineTo(-sw*0.1,  sh*1.05);
+    ctx.lineTo(-sw*0.7,  sh*0.55);
+    ctx.closePath();
+    ctx.fillStyle = ug;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue},100%,68%,0.85)`;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Weapon hardpoints — twin cannon barrels
+    [[-sh*0.25], [sh*0.25]].forEach(([yo]) => {
+      ctx.beginPath();
+      ctx.moveTo(sw*0.7, yo);
+      ctx.lineTo(sw*1.1, yo);
+      ctx.strokeStyle = `hsla(${hue},100%,75%,0.9)`;
+      ctx.lineWidth = isPreview ? 3 : 5;
+      ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = isPreview ? 1.5 : 2.5;
+      // muzzle glow dot
+      ctx.beginPath();
+      ctx.arc(sw*1.1, yo, isPreview ? 2 : 3.5, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = glow; ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    // Bridge/command module
+    ctx.beginPath();
+    ctx.ellipse(sw*0.15, 0, sw*0.18, sh*0.18, 0, 0, Math.PI*2);
+    const cg2 = ctx.createRadialGradient(sw*0.18,-sh*0.05,0, sw*0.15,0,sw*0.18);
+    cg2.addColorStop(0,'rgba(255,255,255,0.95)');
+    cg2.addColorStop(0.5,'rgba(180,200,255,0.5)');
+    cg2.addColorStop(1,'rgba(0,0,80,0.1)');
+    ctx.fillStyle = cg2;
+    ctx.fill();
+
+    // Armor panels
+    ctx.strokeStyle = `hsla(${hue},50%,55%,0.35)`;
+    ctx.lineWidth = isPreview ? 0.6 : 1;
+    ctx.beginPath();
+    ctx.moveTo(sw*0.5,-sh*0.2); ctx.lineTo(-sw*0.5,-sh*0.4);
+    ctx.moveTo(sw*0.5, sh*0.2); ctx.lineTo(-sw*0.5, sh*0.4);
+    ctx.moveTo(-sw*0.1,-sh*0.4); ctx.lineTo(-sw*0.1,sh*0.4);
+    ctx.moveTo(-sw*0.55,-sh*0.45); ctx.lineTo(-sw*0.55,sh*0.45);
+    ctx.stroke();
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+
+  // ─────────────────────────────────────────────────────────
+  //  HOVER SCOUT  (agile hoverbike racer)
+  // ─────────────────────────────────────────────────────────
+  } else if (skinId === 'scooter') {
+    const sw = w * 0.75, sh = w * 0.5;
+
+    // Main chassis — low slung cockpit pod
+    const cg3 = ctx.createLinearGradient(-sw, 0, sw, 0);
+    cg3.addColorStop(0,  `hsla(${hue},55%,10%,0.95)`);
+    cg3.addColorStop(0.7,`hsla(${hue},70%,20%,0.95)`);
+    cg3.addColorStop(1,  `hsla(${hue},85%,30%,0.9)`);
+    ctx.fillStyle = cg3;
+
+    ctx.beginPath();
+    ctx.moveTo(sw, sh*0.25);                   // front nose low
+    ctx.bezierCurveTo(sw*0.7,-sh*0.6, sw*0.1,-sh*0.75, -sw*0.15,-sh*0.6);
+    ctx.lineTo(-sw*0.55,-sh*0.5);
+    ctx.lineTo(-sw*0.7, -sh*0.2);
+    ctx.lineTo(-sw*0.7,  sh*0.2);
+    ctx.lineTo(-sw*0.55, sh*0.5);
+    ctx.lineTo(-sw*0.15, sh*0.6);
+    ctx.bezierCurveTo(sw*0.1, sh*0.75, sw*0.7, sh*0.6, sw, sh*0.25);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = phue;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 6 : 16;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Handlebar / fairing fin
+    ctx.beginPath();
+    ctx.moveTo(sw*0.6, -sh*0.55);
+    ctx.lineTo(sw*0.75,-sh*1.1);
+    ctx.lineTo(sw*0.55,-sh*1.1);
+    ctx.lineTo(sw*0.4, -sh*0.5);
+    ctx.closePath();
+    const fg = ctx.createLinearGradient(0,-sh,0,-sh*0.5);
+    fg.addColorStop(0, `hsla(${hue},100%,50%,0.15)`);
+    fg.addColorStop(1, `hsla(${hue},100%,60%,0.55)`);
+    ctx.fillStyle = fg;
+    ctx.fill();
+    ctx.strokeStyle = `hsla(${hue},100%,70%,0.9)`;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Hover pad pods — under-slung anti-grav
+    [[-sh*0.9], [sh*0.9]].forEach(([yo], i) => {
+      const px = sw*0.1, pw = sw*0.55, ph = sh*0.28;
+      ctx.beginPath();
+      ctx.ellipse(px, yo, pw, ph, 0, 0, Math.PI*2);
+      const pg = ctx.createRadialGradient(px, yo, 0, px, yo, pw);
+      pg.addColorStop(0, `hsla(${hue},100%,55%,0.5)`);
+      pg.addColorStop(0.5,`hsla(${hue},80%,30%,0.4)`);
+      pg.addColorStop(1, `hsla(${hue},60%,10%,0.6)`);
+      ctx.fillStyle = pg;
+      ctx.fill();
+      ctx.strokeStyle = `hsla(${hue},100%,70%,0.9)`;
+      ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 8 : 20;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Hover glow disc beneath each pod
+      if (!isPreview) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const hg2 = ctx.createRadialGradient(px, yo + ph, 0, px, yo + ph, pw * 1.2);
+        hg2.addColorStop(0, `hsla(${hue},100%,70%,0.5)`);
+        hg2.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = hg2;
+        ctx.beginPath();
+        ctx.ellipse(px, yo + ph * 0.6, pw * 1.2, ph * 0.5, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+      }
+    });
+
+    // Rider helmet bubble
+    ctx.beginPath();
+    ctx.arc(sw*0.35, -sh*0.2, sh*0.28, 0, Math.PI*2);
+    const hel = ctx.createRadialGradient(sw*0.38,-sh*0.3,0, sw*0.35,-sh*0.2,sh*0.28);
+    hel.addColorStop(0, 'rgba(255,255,255,0.9)');
+    hel.addColorStop(0.4,'rgba(160,230,255,0.5)');
+    hel.addColorStop(1, 'rgba(0,80,160,0.1)');
+    ctx.fillStyle = hel;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+
+    // Panel lines
+    ctx.strokeStyle = `hsla(${hue},60%,60%,0.35)`;
+    ctx.lineWidth = isPreview ? 0.6 : 1;
+    ctx.beginPath();
+    ctx.moveTo(sw*0.2,sh*0.3); ctx.lineTo(-sw*0.5,sh*0.3);
+    ctx.moveTo(sw*0.2,-sh*0.3);ctx.lineTo(-sw*0.5,-sh*0.3);
+    ctx.moveTo(-sw*0.2,-sh*0.45);ctx.lineTo(-sw*0.2,sh*0.45);
+    ctx.stroke();
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+
+  // ─────────────────────────────────────────────────────────
+  //  SUPER JET  (apex fighter — twin-boom heavy strike craft)
+  // ─────────────────────────────────────────────────────────
+  } else if (skinId === 'super-jet') {
+    const sw = w * 0.95, sh = w * 0.95;
+
+    // Central fuselage hull
+    const sfg = ctx.createLinearGradient(-sw, 0, sw, 0);
+    sfg.addColorStop(0,   `hsla(${hue},55%,10%,0.95)`);
+    sfg.addColorStop(0.55,`hsla(${hue},65%,22%,0.95)`);
+    sfg.addColorStop(1,   `hsla(${hue},80%,32%,0.9)`);
+    ctx.fillStyle = sfg;
+
+    ctx.beginPath();
+    ctx.moveTo(sw, 0);
+    ctx.bezierCurveTo(sw*0.7,-sh*0.18, sw*0.2,-sh*0.28, -sw*0.3,-sh*0.22);
+    ctx.lineTo(-sw*0.6, -sh*0.12);
+    ctx.lineTo(-sw*0.75, 0);
+    ctx.lineTo(-sw*0.6,  sh*0.12);
+    ctx.lineTo(-sw*0.3,  sh*0.22);
+    ctx.bezierCurveTo(sw*0.2,sh*0.28, sw*0.7,sh*0.18, sw, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = phue;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 8 : 22;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Twin engine boom pods (top & bottom)
+    [[-sh*0.62],[sh*0.62]].forEach(([byo]) => {
+      ctx.beginPath();
+      ctx.moveTo(sw*0.5, byo*0.8);
+      ctx.bezierCurveTo(sw*0.2, byo, -sw*0.1, byo*1.05, -sw*0.55, byo*0.9);
+      ctx.lineTo(-sw*0.7, byo*0.7);
+      ctx.lineTo(-sw*0.7, byo*0.5);
+      ctx.lineTo(-sw*0.55,byo*0.3);
+      ctx.lineTo(sw*0.35, byo*0.3);
+      ctx.closePath();
+      const bg2 = ctx.createLinearGradient(0, byo, 0, 0);
+      bg2.addColorStop(0, `hsla(${hue},70%,18%,0.9)`);
+      bg2.addColorStop(1, `hsla(${hue},80%,28%,0.7)`);
+      ctx.fillStyle = bg2;
+      ctx.fill();
+      ctx.strokeStyle = phue2;
+      ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Engine nozzle glow
+      ctx.beginPath();
+      ctx.arc(-sw*0.7, byo*0.6, isPreview ? 4 : 6, 0, Math.PI*2);
+      const ng = ctx.createRadialGradient(-sw*0.7,byo*0.6,0,-sw*0.7,byo*0.6,isPreview?4:6);
+      ng.addColorStop(0,'#fff');
+      ng.addColorStop(0.5,`hsla(${hue},100%,70%,0.9)`);
+      ng.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.fillStyle = ng;
+      ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 8 : 20;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    // Main delta wing
+    ctx.beginPath();
+    ctx.moveTo(sw*0.55, -sh*0.28);
+    ctx.lineTo(-sw*0.2, -sh*1.05);
+    ctx.lineTo(-sw*0.65,-sh*0.65);
+    ctx.lineTo(-sw*0.55,-sh*0.62*0.4);
+    ctx.closePath();
+    const dwg = ctx.createLinearGradient(0,-sh,0,0);
+    dwg.addColorStop(0, `hsla(${hue},100%,50%,0.1)`);
+    dwg.addColorStop(1, `hsla(${hue},100%,60%,0.5)`);
+    ctx.fillStyle = dwg;
+    ctx.fill();
+    ctx.strokeStyle = phue2;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Wing mirror
+    ctx.beginPath();
+    ctx.moveTo(sw*0.55,  sh*0.28);
+    ctx.lineTo(-sw*0.2,  sh*1.05);
+    ctx.lineTo(-sw*0.65, sh*0.65);
+    ctx.lineTo(-sw*0.55, sh*0.62*0.4);
+    ctx.closePath();
+    ctx.fillStyle = dwg;
+    ctx.fill();
+    ctx.strokeStyle = phue2;
+    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Nose cannon
+    ctx.beginPath();
+    ctx.moveTo(sw, -sh*0.04);
+    ctx.lineTo(sw*1.2, -sh*0.04);
+    ctx.moveTo(sw,  sh*0.04);
+    ctx.lineTo(sw*1.2, sh*0.04);
+    ctx.strokeStyle = `hsla(${hue},100%,80%,0.95)`;
+    ctx.lineWidth = isPreview ? 3 : 5;
+    ctx.shadowColor = '#fff'; ctx.shadowBlur = isPreview ? 6 : 16;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+    // muzzle glow
+    [[-sh*0.04],[sh*0.04]].forEach(([my]) => {
+      ctx.beginPath();
+      ctx.arc(sw*1.2, my, isPreview?2:3, 0, Math.PI*2);
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = `hsla(${hue},100%,80%,1)`; ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    // Pilot canopy
+    ctx.beginPath();
+    ctx.ellipse(sw*0.28, 0, sw*0.2, sh*0.14, 0, 0, Math.PI*2);
+    const sc = ctx.createRadialGradient(sw*0.32,-sh*0.05,0, sw*0.28,0,sw*0.2);
+    sc.addColorStop(0,'rgba(255,255,255,0.95)');
+    sc.addColorStop(0.4,'rgba(180,220,255,0.5)');
+    sc.addColorStop(1,'rgba(0,60,120,0.1)');
+    ctx.fillStyle = sc;
+    ctx.fill();
+
+    // Panel lines
+    ctx.strokeStyle = `hsla(${hue},60%,60%,0.35)`;
+    ctx.lineWidth = isPreview ? 0.6 : 1;
+    ctx.beginPath();
+    ctx.moveTo(sw*0.6,-sh*0.12); ctx.lineTo(-sw*0.5,-sh*0.18);
+    ctx.moveTo(sw*0.6, sh*0.12); ctx.lineTo(-sw*0.5, sh*0.18);
+    ctx.moveTo(-sw*0.0,-sh*0.20); ctx.lineTo(-sw*0.0,sh*0.20);
+    ctx.moveTo(-sw*0.3,-sh*0.20); ctx.lineTo(-sw*0.3,sh*0.20);
+    ctx.stroke();
+    ctx.lineWidth = isPreview ? 1.5 : 2.5;
+  }
+
+  // Common: reset alpha
+  ctx.globalAlpha = 1;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ANIMATED PREVIEW RENDER
+// ─────────────────────────────────────────────────────────────
+const canvases = {};
+let animFrame;
+let tick = 0;
+
+function renderPreviews() {
+  tick++;
+  Object.entries(canvases).forEach(([id, cv]) => {
+    const ctx = cv.getContext('2d');
+    const W = cv.width, H = cv.height;
+    ctx.clearRect(0, 0, W, H);
+
+    // subtle grid bg
+    ctx.strokeStyle = 'rgba(0,245,255,0.04)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 18) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 18) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    const skin = SKINS.find(s => s.id === id);
+    if (!skin) return;
+
+    // float bob
+    const bob = Math.sin(tick * 0.04) * 3;
+    ctx.save();
+    ctx.translate(W * 0.52, H * 0.5 + bob);
+    const sz = Math.min(W, H) * 0.28;
+    drawSkinShape(ctx, id, sz, sz, skin.hue, tick, true);
+    ctx.restore();
+  });
+  animFrame = requestAnimationFrame(renderPreviews);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  BUILD UI
+// ─────────────────────────────────────────────────────────────
+function buildUI() {
+  const grid = document.getElementById('skinsGrid');
+  grid.innerHTML = '';
+  const s = getState();
+  document.getElementById('gemCount').textContent = s.gems.toLocaleString();
+
+  SKINS.forEach(skin => {
+    const unlocked = skin.free || s.unlocked.includes(skin.id);
+    const equipped  = s.selected === skin.id;
+
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (equipped ? ' selected' : '') + (unlocked ? '' : ' locked');
+    card.dataset.id = skin.id;
+
+    // Canvas preview
+    const wrap = document.createElement('div');
+    wrap.className = 'canvas-wrap';
+    const cv = document.createElement('canvas');
+    cv.width = 140; cv.height = 100;
+    cv.className = 'skin-canvas';
+    cv.id = 'cv-' + skin.id;
+    canvases[skin.id] = cv;
+    wrap.appendChild(cv);
+
+    // Lock overlay
+    if (!unlocked) {
+      const lo = document.createElement('div');
+      lo.className = 'lock-overlay';
+      lo.textContent = '🔒';
+      wrap.appendChild(lo);
+    }
+    card.appendChild(wrap);
+
+    // Name
+    const nm = document.createElement('div');
+    nm.className = 'skin-name';
+    nm.textContent = skin.name;
+    card.appendChild(nm);
+
+    // Cost or tag
+    if (!unlocked) {
+      const cs = document.createElement('div');
+      cs.className = 'skin-cost';
+      cs.textContent = skin.cost.toLocaleString() + ' 💎';
+      card.appendChild(cs);
+      const tg = document.createElement('div');
+      tg.className = 'skin-tag tag-locked';
+      tg.textContent = 'LOCKED';
+      card.appendChild(tg);
+    } else {
+      const tg = document.createElement('div');
+      tg.className = 'skin-tag ' + (equipped ? 'tag-equipped' : 'tag-unlocked');
+      tg.textContent = equipped ? '⚡ EQUIPPED' : 'UNLOCKED';
+      card.appendChild(tg);
+    }
+
+    // Click handler
+    card.addEventListener('click', () => onCardClick(skin));
+    grid.appendChild(card);
+  });
+}
+
+function onCardClick(skin) {
+  let s = getState();
+  const unlocked = skin.free || s.unlocked.includes(skin.id);
+
+  if (!unlocked) {
+    if (s.gems >= skin.cost) {
+      // Purchase
+      s.gems -= skin.cost;
+      s.unlocked.push(skin.id);
+      s.selected = skin.id;
+      saveState(s);
+      state = s;
+      buildUI();
+      triggerUnlockBurst(skin.id);
+      showToast('✓ ' + skin.name + ' unlocked!', 'success');
+    } else {
+      showToast('Not enough gems — need ' + skin.cost + ' 💎');
+      // Shake card
+      const card = document.querySelector(`[data-id="${skin.id}"]`);
+      card.style.animation = 'none';
+      card.style.transform = 'translateX(-6px)';
+      setTimeout(() => card.style.transform = 'translateX(6px)', 80);
+      setTimeout(() => card.style.transform = 'translateX(0)', 160);
+    }
+    return;
+  }
+
+  // Select
+  if (s.selected !== skin.id) {
+    s.selected = skin.id;
+    saveState(s);
+    state = s;
+    buildUI();
+    showToast('⚡ ' + skin.name + ' equipped', 'success');
+  }
+}
+
+function triggerUnlockBurst(skinId) {
+  const card = document.querySelector(`[data-id="${skinId}"]`);
+  const burst = document.createElement('div');
+  burst.className = 'unlock-burst';
+  card.appendChild(burst);
+  setTimeout(() => burst.remove(), 700);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CODE SNIPPET OUTPUT
+// ─────────────────────────────────────────────────────────────
+document.getElementById('codeOutput').textContent = `
+// ═══════════════════════════════════════════════════
+//  VOID SURGE — Enhanced drawSkinShape()
+//  Drop this in to REPLACE your existing function.
+//  No other changes needed.
+// ═══════════════════════════════════════════════════
+
+function drawSkinShape(ctx, skinId, w, h, hue, t, isPreview) {
+  const phue  = \`hsl(\${Math.floor(hue)},100%,60%)\`;
+  const phue2 = \`hsl(\${Math.floor(hue+40)},100%,75%)\`;
+  const glow  = \`hsl(\${Math.floor(hue)},100%,80%)\`;
+
+  ctx.lineJoin = 'round';
+  ctx.lineCap  = 'round';
+  ctx.lineWidth = isPreview ? 1.5 : Math.max(2, 2.5);
+
+  // ── THRUSTER EXHAUST ─────────────────────────────
+  if (!isPreview) {
+    const fl = w*(1.1+Math.sin(t*0.09)*0.4+Math.random()*0.3);
+    const fy = w*(0.10+Math.sin(t*0.13)*0.04);
+    ctx.save();
+    ctx.globalCompositeOperation='screen';
+
+    const g1=ctx.createLinearGradient(-w*0.75,0,-w*0.75-fl,0);
+    g1.addColorStop(0,\`hsla(\${hue},100%,70%,0.9)\`);
+    g1.addColorStop(0.3,\`hsla(\${hue+20},100%,65%,0.6)\`);
+    g1.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g1;
+    ctx.beginPath();
+    ctx.moveTo(-w*0.75,fy);
+    ctx.quadraticCurveTo(-w*0.75-fl*0.5,fy*2.2,-w*0.75-fl,0);
+    ctx.quadraticCurveTo(-w*0.75-fl*0.5,-fy*2.2,-w*0.75,-fy);
+    ctx.closePath(); ctx.fill();
+
+    const g2=ctx.createLinearGradient(-w*0.75,0,-w*0.75-fl*0.7,0);
+    g2.addColorStop(0,'#ffffff');
+    g2.addColorStop(0.2,\`hsla(\${hue},100%,90%,0.9)\`);
+    g2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g2;
+    ctx.beginPath();
+    ctx.moveTo(-w*0.75,fy*0.4);
+    ctx.quadraticCurveTo(-w*0.75-fl*0.6,fy*0.5,-w*0.75-fl*0.7,0);
+    ctx.quadraticCurveTo(-w*0.75-fl*0.6,-fy*0.5,-w*0.75,-fy*0.4);
+    ctx.closePath(); ctx.fill();
+
+    ctx.globalCompositeOperation='source-over';
+    ctx.restore();
+  }
+
+  // [Each skin block: default-jet / ship / scooter / super-jet]
+  // Full code available in void-surge-skins-enhanced.html
+  // Copy the complete drawSkinShape body from that file.
+}
+
+// ── SKIN DEFINITIONS ────────────────────────────────
+const SKIN_DATA = [
+  { id:'default-jet', name:'Default Jet', cost:0,    hue:195, free:true  },
+  { id:'ship',        name:'Raptor Ship', cost:500,  hue:280, free:false },
+  { id:'scooter',     name:'Hover Scout', cost:1000, hue:120, free:false },
+  { id:'super-jet',   name:'Super Jet',   cost:2000, hue:35,  free:false },
+];
+
+// ── LOCALSTORAGE HELPERS ────────────────────────────
+function getSkinState() {
+  return {
+    gems:     parseInt(localStorage.getItem('totalGems')||'0'),
+    unlocked: JSON.parse(localStorage.getItem('unlockedSkins')||'["default-jet"]'),
+    selected: localStorage.getItem('selectedSkin')||'default-jet',
+  };
+}
+function saveSkinState(s) {
+  localStorage.setItem('totalGems',     s.gems);
+  localStorage.setItem('unlockedSkins', JSON.stringify(s.unlocked));
+  localStorage.setItem('selectedSkin',  s.selected);
+}
+
+// ── IN YOUR PLAYER DRAW CALL ─────────────────────────
+// Replace the hardcoded skinId with:
+//   getSkinState().selected
+// e.g.:
+//   drawSkinShape(ctx, getSkinState().selected, pw, ph, playerHue, gameTimer, false);
+`.trim();
+
+// ─────────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────────
+buildUI();
+setTimeout(() => {
+  renderPreviews();
+}, 50);
+</script>
+</body>
+</html>

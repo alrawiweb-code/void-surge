@@ -51,7 +51,17 @@
         let level = levelSaves.current || levelSaves.level || 1;
         let unlockedLevel = levelSaves.unlocked || levelSaves.level || 1;
         let bestScore = +(localStorage.getItem('vs_best_100') || 0);
+        let totalGems = +(localStorage.getItem('vs_total_gems') || 0);
+        let unlockedSkins = JSON.parse(localStorage.getItem('vs_unlocked_skins') || '["default-jet"]');
+        let selectedSkin = localStorage.getItem('vs_selected_skin') || 'default-jet';
         let playerName = localStorage.getItem('vs_player_name') || '';
+
+        const SKINS_DATA = {
+            'default-jet': { name: 'DEFAULT JET', cost: 0, drawMode: 'default-jet' },
+            'ship': { name: 'RAPTOR SHIP', cost: 500, drawMode: 'ship' },
+            'scooter': { name: 'HOVER SCOOTER', cost: 1000, drawMode: 'scooter' },
+            'super-jet': { name: 'SUPER JET', cost: 2000, drawMode: 'super-jet' }
+        };
 
         // Native Score Sync
         if (window.Capacitor && window.Capacitor.Plugins.NativeBridge) {
@@ -71,8 +81,19 @@
         const welcomeMsg = document.getElementById('welcome-msg');
         const setNameDisp = document.getElementById('set-name-display');
 
+        /* ════════════════════════════════════════════════
+           0. GYRO SETTINGS MODULE
+        ════════════════════════════════════════════════ */
+
+
+
+
+
         // Per-run vars
         let gameSpeed = 5;
+        let baseSpeed = 5;
+        let timeScaling = 0;
+        const maxSpeed = 15;
         let elapsed = 0;
         let timeLimitForBoss = 15000; // time required to survive current level before boss spawns
         let bossActive = false;
@@ -253,13 +274,14 @@
         }
 
         function updateLevelDifficulty() {
+            timeScaling = 0; // Reset gradual speed on level change
             if(gameMode === 'levels') {
                 let lvlDef = LEVEL_DATA[level > 10 ? 10 : level];
-                gameSpeed = 5 * lvlDef.multi;
+                baseSpeed = 5 * lvlDef.multi;
                 chaos = (level === 6 || level === 8);
                 bgHue = (level * 36) % 360;
             } else {
-                gameSpeed = 5;
+                baseSpeed = 5;
                 chaos = false;
             }
         }
@@ -383,12 +405,13 @@
             cx.fill();
             _glowCache[col] = c; return c;
         }
-        function drawGlowFast(x, y, col, sz, a) {
+        function drawGlowFast(x, y, col, sz, a, targetCtx) {
             var g = getGlow(col);
-            ctx.save(); ctx.globalAlpha = a != null ? a : 1; 
-            ctx.globalCompositeOperation = 'screen';
-            ctx.drawImage(g, x - sz, y - sz, sz * 2, sz * 2);
-            ctx.restore();
+            var context = targetCtx || ctx;
+            context.save(); context.globalAlpha = a != null ? a : 1; 
+            context.globalCompositeOperation = 'screen';
+            context.drawImage(g, x - sz, y - sz, sz * 2, sz * 2);
+            context.restore();
         }
 
         function obsInterval() { return Math.max(400, 1300 - gameSpeed * 40 - level * 5) + Math.random() * 400; }
@@ -426,12 +449,464 @@
         Player.prototype.update = function (dt) {
             this.t += dt;
             this.hue = (this.hue + 0.7) % 360;
+
+            // TOUCH/KEYBOARD MODE: smooth lane interpolation
             this.y += (this.targetY - this.y) * (1 - Math.pow(0.01, dt / 120));
+
             if (this.inv > 0) this.inv -= dt;
             this.trail.push({ x: this.x, y: this.y });
-            // Opt: reduced player trail length from 18 to 10
             if (this.trail.length > 10) this.trail.shift();
         };
+
+        function drawSkinShape(ctx, skinId, w, h, hue, t, isPreview) {
+            ctx.save();
+            const phue  = `hsl(${Math.floor(hue)},100%,60%)`;
+            const phue2 = `hsl(${Math.floor(hue + 40)},100%,75%)`;
+            const glow  = `hsl(${Math.floor(hue)},100%,80%)`;
+
+            ctx.lineJoin = 'round';
+            ctx.lineCap  = 'round';
+            ctx.lineWidth = isPreview ? 1.5 : Math.max(2, 2.5 * scale);
+
+            // ── THRUSTER EXHAUST (behind craft, non-preview only) ──────
+            if (!isPreview) {
+                const fl  = w * (1.1 + Math.sin(t * 0.09) * 0.4 + Math.random() * 0.3);
+                const fy  = w * (0.10 + Math.sin(t * 0.13) * 0.04);
+                ctx.save();
+                ctx.globalCompositeOperation = 'screen';
+
+                // Outer cone — wide warm glow
+                const g1 = ctx.createLinearGradient(-w * 0.75, 0, -w * 0.75 - fl, 0);
+                g1.addColorStop(0,   `hsla(${hue},100%,70%,0.9)`);
+                g1.addColorStop(0.3, `hsla(${hue + 20},100%,65%,0.6)`);
+                g1.addColorStop(1,   'rgba(0,0,0,0)');
+                ctx.fillStyle = g1;
+                ctx.beginPath();
+                ctx.moveTo(-w * 0.75,  fy);
+                ctx.quadraticCurveTo(-w * 0.75 - fl * 0.5,  fy * 2.2, -w * 0.75 - fl,  0);
+                ctx.quadraticCurveTo(-w * 0.75 - fl * 0.5, -fy * 2.2, -w * 0.75, -fy);
+                ctx.closePath();
+                ctx.fill();
+
+                // Inner bright core
+                const g2 = ctx.createLinearGradient(-w * 0.75, 0, -w * 0.75 - fl * 0.7, 0);
+                g2.addColorStop(0,   '#ffffff');
+                g2.addColorStop(0.2, `hsla(${hue},100%,90%,0.9)`);
+                g2.addColorStop(1,   'rgba(0,0,0,0)');
+                ctx.fillStyle = g2;
+                ctx.beginPath();
+                ctx.moveTo(-w * 0.75,  fy * 0.4);
+                ctx.quadraticCurveTo(-w * 0.75 - fl * 0.6, fy * 0.5, -w * 0.75 - fl * 0.7, 0);
+                ctx.quadraticCurveTo(-w * 0.75 - fl * 0.6, -fy * 0.5, -w * 0.75, -fy * 0.4);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.restore();
+            }
+
+            if (skinId === 'ship') {
+                const sw = w * 0.95, sh = w * 0.75;
+                const hg = ctx.createLinearGradient(-sw, 0, sw, 0);
+                hg.addColorStop(0,   `hsla(${hue},50%,10%,0.95)`);
+                hg.addColorStop(0.6, `hsla(${hue},60%,20%,0.95)`);
+                hg.addColorStop(1,   `hsla(${hue},80%,28%,0.9)`);
+                ctx.fillStyle = hg;
+
+                ctx.beginPath();
+                ctx.moveTo(sw, 0);
+                ctx.lineTo(sw * 0.5,  -sh * 0.22);
+                ctx.lineTo(-sw * 0.1, -sh * 0.55);
+                ctx.lineTo(-sw * 0.55,-sh * 0.55);
+                ctx.lineTo(-sw * 0.75,-sh * 0.3);
+                ctx.lineTo(-sw * 0.85, 0);
+                ctx.lineTo(-sw * 0.75, sh * 0.3);
+                ctx.lineTo(-sw * 0.55, sh * 0.55);
+                ctx.lineTo(-sw * 0.1,  sh * 0.55);
+                ctx.lineTo(sw * 0.5,   sh * 0.22);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = phue;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 7 : 18;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.3,  -sh * 0.22);
+                ctx.lineTo(-sw * 0.1, -sh * 1.05);
+                ctx.lineTo(-sw * 0.7, -sh * 0.55);
+                ctx.closePath();
+                const ug = ctx.createLinearGradient(0, -sh, 0, 0);
+                ug.addColorStop(0, `hsla(${hue},100%,50%,0.12)`);
+                ug.addColorStop(1, `hsla(${hue},100%,60%,0.5)`);
+                ctx.fillStyle = ug;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${hue},100%,68%,0.85)`;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.3,   sh * 0.22);
+                ctx.lineTo(-sw * 0.1,  sh * 1.05);
+                ctx.lineTo(-sw * 0.7,  sh * 0.55);
+                ctx.closePath();
+                ctx.fillStyle = ug;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${hue},100%,68%,0.85)`;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                [[-sh * 0.25], [sh * 0.25]].forEach(([yo]) => {
+                    ctx.beginPath();
+                    ctx.moveTo(sw * 0.7, yo);
+                    ctx.lineTo(sw * 1.1, yo);
+                    ctx.strokeStyle = `hsla(${hue},100%,75%,0.9)`;
+                    ctx.lineWidth = isPreview ? 3 : 5 * scale;
+                    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                    ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+                    ctx.beginPath();
+                    ctx.arc(sw * 1.1, yo, isPreview ? 2 : 3.5 * scale, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowColor = glow; ctx.shadowBlur = 10;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                ctx.beginPath();
+                ctx.ellipse(sw * 0.15, 0, sw * 0.18, sh * 0.18, 0, 0, Math.PI * 2);
+                const cg2 = ctx.createRadialGradient(sw * 0.18, -sh * 0.05, 0, sw * 0.15, 0, sw * 0.18);
+                cg2.addColorStop(0, 'rgba(255,255,255,0.95)');
+                cg2.addColorStop(0.5, 'rgba(180,200,255,0.5)');
+                cg2.addColorStop(1, 'rgba(0,100,180,0.1)');
+                ctx.fillStyle = cg2;
+                ctx.fill();
+
+                ctx.strokeStyle = `hsla(${hue},50%,55%,0.35)`;
+                ctx.lineWidth = isPreview ? 0.6 : 1 * scale;
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.5, -sh * 0.2); ctx.lineTo(-sw * 0.5, -sh * 0.4);
+                ctx.moveTo(sw * 0.5, sh * 0.2); ctx.lineTo(-sw * 0.5, sh * 0.4);
+                ctx.moveTo(-sw * 0.1, -sh * 0.4); ctx.lineTo(-sw * 0.1, sh * 0.4);
+                ctx.moveTo(-sw * 0.55, -sh * 0.45); ctx.lineTo(-sw * 0.55, sh * 0.45);
+                ctx.stroke();
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+            } else if (skinId === 'scooter') {
+                const sw = w * 0.75, sh = w * 0.5;
+                const cg3 = ctx.createLinearGradient(-sw, 0, sw, 0);
+                cg3.addColorStop(0,  `hsla(${hue},55%,10%,0.95)`);
+                cg3.addColorStop(0.7,`hsla(${hue},70%,20%,0.95)`);
+                cg3.addColorStop(1,  `hsla(${hue},85%,30%,0.9)`);
+                ctx.fillStyle = cg3;
+
+                ctx.beginPath();
+                ctx.moveTo(sw, sh * 0.25);
+                ctx.bezierCurveTo(sw * 0.7, -sh * 0.6, sw * 0.1, -sh * 0.75, -sw * 0.15, -sh * 0.6);
+                ctx.lineTo(-sw * 0.55, -sh * 0.5);
+                ctx.lineTo(-sw * 0.7, -sh * 0.2);
+                ctx.lineTo(-sw * 0.7,  sh * 0.2);
+                ctx.lineTo(-sw * 0.55, sh * 0.5);
+                ctx.lineTo(-sw * 0.15, sh * 0.6);
+                ctx.bezierCurveTo(sw * 0.1, sh * 0.75, sw * 0.7, sh * 0.6, sw, sh * 0.25);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = phue;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 6 : 16;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.6, -sh * 0.55);
+                ctx.lineTo(sw * 0.75, -sh * 1.1);
+                ctx.lineTo(sw * 0.55, -sh * 1.1);
+                ctx.lineTo(sw * 0.4, -sh * 0.5);
+                ctx.closePath();
+                const fg = ctx.createLinearGradient(0, -sh, 0, -sh * 0.5);
+                fg.addColorStop(0, `hsla(${hue},100%,50%,0.15)`);
+                fg.addColorStop(1, `hsla(${hue},100%,60%,0.55)`);
+                ctx.fillStyle = fg;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${hue},100%,70%,0.9)`;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                [[-sh * 0.9], [sh * 0.9]].forEach(([yo]) => {
+                    const px = sw * 0.1, pw = sw * 0.55, ph = sh * 0.28;
+                    ctx.beginPath();
+                    ctx.ellipse(px, yo, pw, ph, 0, 0, Math.PI * 2);
+                    const pg = ctx.createRadialGradient(px, yo, 0, px, yo, pw);
+                    pg.addColorStop(0, `hsla(${hue},100%,55%,0.5)`);
+                    pg.addColorStop(0.5,`hsla(${hue},80%,30%,0.4)`);
+                    pg.addColorStop(1, `hsla(${hue},60%,10%,0.6)`);
+                    ctx.fillStyle = pg;
+                    ctx.fill();
+                    ctx.strokeStyle = `hsla(${hue},100%,70%,0.9)`;
+                    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 8 : 20;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    if (!isPreview) {
+                        ctx.save();
+                        ctx.globalCompositeOperation = 'screen';
+                        const hg2 = ctx.createRadialGradient(px, yo + ph, 0, px, yo + ph, pw * 1.2);
+                        hg2.addColorStop(0, `hsla(${hue},100%,70%,0.5)`);
+                        hg2.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.fillStyle = hg2;
+                        ctx.beginPath();
+                        ctx.ellipse(px, yo + ph * 0.6, pw * 1.2, ph * 0.5, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.restore();
+                    }
+                });
+
+                ctx.beginPath();
+                ctx.arc(sw * 0.35, -sh * 0.2, sh * 0.28, 0, Math.PI * 2);
+                const hel = ctx.createRadialGradient(sw * 0.38, -sh * 0.3, 0, sw * 0.35, -sh * 0.2, sh * 0.28);
+                hel.addColorStop(0, 'rgba(255,255,255,0.9)');
+                hel.addColorStop(0.4,'rgba(160,230,255,0.5)');
+                hel.addColorStop(1, 'rgba(0,80,160,0.1)');
+                ctx.fillStyle = hel;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+
+                ctx.strokeStyle = `hsla(${hue},60%,60%,0.35)`;
+                ctx.lineWidth = isPreview ? 0.6 : 1 * scale;
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.2, sh * 0.3); ctx.lineTo(-sw * 0.5, sh * 0.3);
+                ctx.moveTo(sw * 0.2, -sh * 0.3);ctx.lineTo(-sw * 0.5, -sh * 0.3);
+                ctx.moveTo(-sw * 0.2, -sh * 0.45);ctx.lineTo(-sw * 0.2, sh * 0.45);
+                ctx.stroke();
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+            } else if (skinId === 'super-jet') {
+                const sw = w * 0.95, sh = w * 0.95;
+                const sfg = ctx.createLinearGradient(-sw, 0, sw, 0);
+                sfg.addColorStop(0,   `hsla(${hue},55%,10%,0.95)`);
+                sfg.addColorStop(0.55,`hsla(${hue},65%,22%,0.95)`);
+                sfg.addColorStop(1,   `hsla(${hue},80%,32%,0.9)`);
+                ctx.fillStyle = sfg;
+
+                ctx.beginPath();
+                ctx.moveTo(sw, 0);
+                ctx.bezierCurveTo(sw * 0.7, -sh * 0.18, sw * 0.2, -sh * 0.28, -sw * 0.3, -sh * 0.22);
+                ctx.lineTo(-sw * 0.6, -sh * 0.12);
+                ctx.lineTo(-sw * 0.75, 0);
+                ctx.lineTo(-sw * 0.6,  sh * 0.12);
+                ctx.lineTo(-sw * 0.3,  sh * 0.22);
+                ctx.bezierCurveTo(sw * 0.2,sh * 0.28, sw * 0.7,sh * 0.18, sw, 0);
+                ctx.closePath();
+                ctx.fill();
+                ctx.strokeStyle = phue;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 8 : 22;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                [[-sh * 0.62],[sh * 0.62]].forEach(([byo]) => {
+                    ctx.beginPath();
+                    ctx.moveTo(sw * 0.5, byo * 0.8);
+                    ctx.bezierCurveTo(sw * 0.2, byo, -sw * 0.1, byo * 1.05, -sw * 0.55, byo * 0.9);
+                    ctx.lineTo(-sw * 0.7, byo * 0.7);
+                    ctx.lineTo(-sw * 0.7, byo * 0.5);
+                    ctx.lineTo(-sw * 0.55,byo * 0.3);
+                    ctx.lineTo(sw * 0.35, byo * 0.3);
+                    ctx.closePath();
+                    const bg2 = ctx.createLinearGradient(0, byo, 0, 0);
+                    bg2.addColorStop(0, `hsla(${hue},70%,18%,0.9)`);
+                    bg2.addColorStop(1, `hsla(${hue},80%,28%,0.7)`);
+                    ctx.fillStyle = bg2;
+                    ctx.fill();
+                    ctx.strokeStyle = phue2;
+                    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    ctx.beginPath();
+                    ctx.arc(-sw * 0.7, byo * 0.6, isPreview ? 4 : 6 * scale, 0, Math.PI * 2);
+                    const ng = ctx.createRadialGradient(-sw * 0.7, byo * 0.6, 0, -sw * 0.7, byo * 0.6, isPreview ? 4 : 6 * scale);
+                    ng.addColorStop(0, '#fff');
+                    ng.addColorStop(0.5, `hsla(${hue},100%,70%,0.9)`);
+                    ng.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = ng;
+                    ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 8 : 20;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.55, -sh * 0.28);
+                ctx.lineTo(-sw * 0.2, -sh * 1.05);
+                ctx.lineTo(-sw * 0.65, -sh * 0.65);
+                ctx.lineTo(-sw * 0.55, -sh * 0.62 * 0.4);
+                ctx.closePath();
+                const dwg = ctx.createLinearGradient(0, -sh, 0, 0);
+                dwg.addColorStop(0, `hsla(${hue},100%,50%,0.1)`);
+                dwg.addColorStop(1, `hsla(${hue},100%,60%,0.5)`);
+                ctx.fillStyle = dwg;
+                ctx.fill();
+                ctx.strokeStyle = phue2;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.55,  sh * 0.28);
+                ctx.lineTo(-sw * 0.2,  sh * 1.05);
+                ctx.lineTo(-sw * 0.65, sh * 0.65);
+                ctx.lineTo(-sw * 0.55, sh * 0.62 * 0.4);
+                ctx.closePath();
+                ctx.fillStyle = dwg;
+                ctx.fill();
+                ctx.strokeStyle = phue2;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 14;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw, -sh * 0.04);
+                ctx.lineTo(sw * 1.2, -sh * 0.04);
+                ctx.moveTo(sw,  sh * 0.04);
+                ctx.lineTo(sw * 1.2, sh * 0.04);
+                ctx.strokeStyle = `hsla(${hue},100%,80%,0.95)`;
+                ctx.lineWidth = isPreview ? 3 : 5 * scale;
+                ctx.shadowColor = '#fff'; ctx.shadowBlur = isPreview ? 6 : 16;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+                [[-sh * 0.04],[sh * 0.04]].forEach(([my]) => {
+                    ctx.beginPath();
+                    ctx.arc(sw * 1.2, my, isPreview ? 2 : 3 * scale, 0, Math.PI * 2);
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowColor = `hsla(${hue},100%,80%,1)`; ctx.shadowBlur = 12;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+
+                ctx.beginPath();
+                ctx.ellipse(sw * 0.28, 0, sw * 0.2, sh * 0.14, 0, 0, Math.PI * 2);
+                const sc2 = ctx.createRadialGradient(sw * 0.32, -sh * 0.05, 0, sw * 0.28, 0, sw * 0.2);
+                sc2.addColorStop(0, 'rgba(255,255,255,0.95)');
+                sc2.addColorStop(0.4, 'rgba(180,220,255,0.5)');
+                sc2.addColorStop(1, 'rgba(0,60,120,0.1)');
+                ctx.fillStyle = sc2;
+                ctx.fill();
+
+                ctx.strokeStyle = `hsla(${hue},60%,60%,0.35)`;
+                ctx.lineWidth = isPreview ? 0.6 : 1 * scale;
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.6, -sh * 0.12); ctx.lineTo(-sw * 0.5, -sh * 0.18);
+                ctx.moveTo(sw * 0.6, sh * 0.12); ctx.lineTo(-sw * 0.5, sh * 0.18);
+                ctx.moveTo(0, -sh * 0.20); ctx.lineTo(0, sh * 0.20);
+                ctx.moveTo(-sw * 0.3, -sh * 0.20); ctx.lineTo(-sw * 0.3, sh * 0.20);
+                ctx.stroke();
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+            } else { // default-jet
+                const sw = w * 0.9, sh = w * 0.38;
+                const bg = ctx.createLinearGradient(-sw, 0, sw, 0);
+                bg.addColorStop(0,   `hsla(${hue},60%,12%,0.9)`);
+                bg.addColorStop(0.5, `hsla(${hue},70%,22%,0.95)`);
+                bg.addColorStop(1,   `hsla(${hue},80%,30%,0.9)`);
+                ctx.fillStyle = bg;
+
+                ctx.beginPath();
+                ctx.moveTo(sw, 0);
+                ctx.bezierCurveTo(sw * 0.6, -sh * 0.3, sw * 0.1, -sh * 0.95, -sw * 0.5, -sh * 0.95);
+                ctx.lineTo(-sw * 0.75, -sh * 0.6);
+                ctx.lineTo(-sw * 0.95, -sh * 0.15);
+                ctx.lineTo(-sw * 0.75,  0);
+                ctx.lineTo(-sw * 0.95,  sh * 0.15);
+                ctx.lineTo(-sw * 0.75,  sh * 0.6);
+                ctx.lineTo(-sw * 0.5,   sh * 0.95);
+                ctx.bezierCurveTo(sw * 0.1, sh * 0.95, sw * 0.6, sh * 0.3, sw, 0);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = phue;
+                ctx.shadowColor  = glow;
+                ctx.shadowBlur   = isPreview ? 6 : 14;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.1, -sh * 0.9);
+                ctx.lineTo(-sw * 0.4, -sh * 2.0);
+                ctx.lineTo(-sw * 0.85, -sh * 0.7);
+                ctx.closePath();
+                const wg1 = ctx.createLinearGradient(0, -sh * 2, 0, 0);
+                wg1.addColorStop(0, `hsla(${hue},100%,50%,0.15)`);
+                wg1.addColorStop(1, `hsla(${hue},100%,50%,0.55)`);
+                ctx.fillStyle = wg1;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${hue},100%,65%,0.8)`;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 4 : 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.1,  sh * 0.9);
+                ctx.lineTo(-sw * 0.4,  sh * 2.0);
+                ctx.lineTo(-sw * 0.85, sh * 0.7);
+                ctx.closePath();
+                ctx.fillStyle = wg1;
+                ctx.fill();
+                ctx.strokeStyle = `hsla(${hue},100%,65%,0.8)`;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 4 : 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.beginPath();
+                ctx.ellipse(sw * 0.35, 0, sw * 0.22, sh * 0.28, 0, 0, Math.PI * 2);
+                const cg = ctx.createRadialGradient(sw * 0.4, -sh * 0.1, 0, sw * 0.35, 0, sw * 0.22);
+                cg.addColorStop(0, 'rgba(255,255,255,0.9)');
+                cg.addColorStop(0.4, 'rgba(180,240,255,0.5)');
+                cg.addColorStop(1, 'rgba(0,100,180,0.1)');
+                ctx.fillStyle = cg;
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+
+                ctx.beginPath();
+                ctx.moveTo(-sw * 0.5, -sh * 0.5);
+                ctx.lineTo(-sw * 0.5,  sh * 0.5);
+                ctx.strokeStyle = `hsla(${hue},100%,70%,0.7)`;
+                ctx.shadowColor = glow; ctx.shadowBlur = isPreview ? 5 : 12;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                ctx.strokeStyle = `hsla(${hue},60%,60%,0.4)`;
+                ctx.lineWidth = isPreview ? 0.7 : 1 * scale;
+                ctx.beginPath();
+                ctx.moveTo(sw * 0.5,  sh * 0.12); ctx.lineTo(-sw * 0.3, sh * 0.55);
+                ctx.moveTo(sw * 0.5, -sh * 0.12); ctx.lineTo(-sw * 0.3,-sh * 0.55);
+                ctx.stroke();
+                ctx.lineWidth = isPreview ? 1.5 : 2.5 * scale;
+            }
+
+            ctx.globalAlpha = 1;
+            ctx.restore();
+        }
+
+        function drawSkinPreview(c, id, sc, hue, t) {
+            const centerX = 40;
+            const centerY = 40;
+            console.log("Drawing icon at", centerX, centerY);
+            c.setTransform(1, 0, 0, 1, 0, 0); // RESET TRANSFORM
+            c.translate(centerX, centerY); // ENSURE CENTERED DRAWING
+            
+            c.save();
+            c.scale(sc, sc);
+            drawGlowFast(0, 0, 'hsl(185,100%,60%)', 24, 0.45, c);
+            drawSkinShape(c, id, 22, 22, hue, t, true);
+            c.restore();
+        }
         Player.prototype.draw = function () {
             // Engine exhaust sparks from trail
             for (var i = 0; i < this.trail.length; i++) {
@@ -457,77 +932,7 @@
             var phue = 'hsl(' + Math.floor(this.hue) + ',100%,60%)';
             drawGlowFast(0, 0, phue, this.w * 1.5, 0.5);
             
-            // Jet exhaust flame (dynamic pulsing)
-            var flameLength = this.w * (1.2 + Math.random() * 0.8 + 0.3 * Math.sin(this.t * 0.08));
-            var flameY = this.w * (0.15 + Math.random() * 0.08);
-            ctx.globalCompositeOperation = 'screen';
-            
-            // Outer flame fading out
-            var fGrd = ctx.createLinearGradient(-this.w * 0.8, 0, -this.w * 0.8 - flameLength, 0);
-            fGrd.addColorStop(0, 'hsl(' + this.hue + ', 100%, 60%)');
-            fGrd.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = fGrd;
-            ctx.beginPath();
-            ctx.moveTo(-this.w * 0.8, flameY);
-            ctx.lineTo(-this.w * 0.8 - flameLength * 0.4, flameY * 1.4);
-            ctx.lineTo(-this.w * 0.8 - flameLength, 0);
-            ctx.lineTo(-this.w * 0.8 - flameLength * 0.4, -flameY * 1.4);
-            ctx.lineTo(-this.w * 0.8, -flameY);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Inner hot core
-            ctx.fillStyle = '#fff';
-            ctx.globalAlpha = 0.7 + Math.random() * 0.3;
-            ctx.beginPath();
-            ctx.moveTo(-this.w * 0.8, flameY * 0.5);
-            ctx.lineTo(-this.w * 0.8 - flameLength * 0.6, 0);
-            ctx.lineTo(-this.w * 0.8, -flameY * 0.5);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = 1;
-            
-            var w = this.w * 0.85;
-            var h = this.w * 0.65;
-            
-            // Outer ship glowing stroke
-            ctx.strokeStyle = phue;
-            ctx.lineWidth = 3 * scale;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            
-            ctx.beginPath();
-            ctx.moveTo(w, 0);               // Nose
-            ctx.lineTo(-w*0.1, -h*0.35);    // Upper fuselage slope
-            ctx.lineTo(-w*0.4, -h);         // Upper wing tip
-            ctx.lineTo(-w*0.4, -h*0.35);    // Upper wing trailing edge
-            ctx.lineTo(-w*0.8, -h*0.25);    // Engine top
-            ctx.lineTo(-w*0.8, h*0.25);     // Engine bottom
-            ctx.lineTo(-w*0.4, h*0.35);     // Lower wing trailing edge
-            ctx.lineTo(-w*0.4, h);          // Lower wing tip
-            ctx.lineTo(-w*0.1, h*0.35);     // Lower fuselage slope
-            ctx.closePath();
-            
-            // Ship panel details
-            ctx.moveTo(-w*0.1, -h*0.35);
-            ctx.lineTo(-w*0.1, h*0.35); // Vertical split
-            ctx.moveTo(w, 0);
-            ctx.lineTo(-w*0.8, 0); // Center line
-            
-            ctx.stroke();
-
-            // Cockpit bright accent
-            ctx.fillStyle = '#fff';
-            ctx.globalAlpha = 0.6;
-            ctx.beginPath();
-            ctx.moveTo(w*0.45, 0);
-            ctx.lineTo(0, -h*0.15);
-            ctx.lineTo(-w*0.1, 0);
-            ctx.lineTo(0, h*0.15);
-            ctx.closePath();
-            ctx.fill();
+            drawSkinShape(ctx, selectedSkin, this.w, this.h, this.hue, this.t, false);
             
             ctx.restore();
         };
@@ -819,6 +1224,7 @@
             });
         }
 
+
         function startBoss() {
             bossActive = true;
             if (level >= MAX_LEVELS) {
@@ -937,13 +1343,17 @@
                 ldots[i].style.boxShadow = player.lane === i ? '0 0 9px ' + LC[i] : 'none';
             }
 
-            let gemRateMulti = 1;
+            // Universal continuous scaling
+            if (gameState === 'PLAY') {
+                timeScaling += dt * 0.00005;
+                gameSpeed = Math.min(baseSpeed + timeScaling, maxSpeed);
+            }
+            
+            // Gradually reduce gem drop rate as speed naturally increases
+            let gemRateMulti = Math.max(0.3, 1.0 - (timeScaling * 0.1)); 
+
             if (gameMode === 'endless') {
                 let tSec = Math.floor(elapsed / 1000);
-                if (tSec < 60) { gameSpeed = 5 * 1.0; gemRateMulti = 1.0; }
-                else if (tSec < 180) { gameSpeed = 5 * 1.35; gemRateMulti = 0.7; }
-                else if (tSec < 300) { gameSpeed = 5 * 1.65; gemRateMulti = 0.5; }
-                else { gameSpeed = 5 * 2.0; gemRateMulti = 0.3; }
                 
                 if (!bossActive && tSec > 0 && tSec % 90 === 0 && tSec !== lastBossSec) { lastBossSec = tSec; startBoss(); }
                 if (!bossActive && gameState === 'PLAY') {
@@ -1077,6 +1487,9 @@
                 var g = gemList[gi]; g.update();
                 if (Math.hypot(g.x - player.x, g.y - player.y) < g.r + player.w / 2 + 2) {
                     g.active = false; gemsGot++; levelGemsGot++; combo++; noGemTime = 0;
+                    totalGems++;
+                    localStorage.setItem('vs_total_gems', totalGems);
+                    document.getElementById('total-gems-val').textContent = totalGems;
                     if (combo > maxCombo) maxCombo = combo;
                     if (combo > levelMaxCombo) levelMaxCombo = combo;
                     if (combo >= 2) {
@@ -1168,6 +1581,7 @@
             }
 
             score = 0; level = startLevel; levelSegment = startSegment;
+            document.getElementById('total-gems-val').textContent = totalGems;
             updateLevelDifficulty();
             elapsed = 0; bossActive = false; bossTimer = 0; bossProjTimer = 0;
             combo = 0; maxCombo = 0; gemsGot = 0; dodges = 0;
@@ -1199,6 +1613,8 @@
             scrStart.classList.remove('on'); scrOver.classList.remove('on'); scrPause.classList.remove('on'); scrVictory.classList.remove('on'); scrLevels.classList.remove('on');
             btnPause.style.display = 'block';
             player = new Player(); getAudio();
+
+
         }
 
         function endGame() {
@@ -1312,16 +1728,23 @@
                 if (gameState === 'PAUSE') { startResumeCountdown(); return; }
             }
             if (gameState !== 'PLAY') return;
+            // Keyboard blocked when gyro is primary controller
+            if (GyroSettings.cfg.gyroEnabled) return;
             if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); player.move(-1); }
             if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); player.move(1); }
             if (e.code === 'Space') { e.preventDefault(); player.flip(); }
         });
 
         var tSY = null, tSX = null, tST = null;
-        canvas.addEventListener('touchstart', function (e) { e.preventDefault(); tSY = e.touches[0].clientY; tSX = e.touches[0].clientX; tST = Date.now(); getAudio(); }, { passive: false });
+        canvas.addEventListener('touchstart', function (e) {
+            e.preventDefault();
+            tSY = e.touches[0].clientY; tSX = e.touches[0].clientX; tST = Date.now();
+            getAudio();
+        }, { passive: false });
         canvas.addEventListener('touchend', function (e) {
             e.preventDefault(); if (tSY === null) return;
-            if (gameState === 'PLAY') {
+            // Touch/swipe is blocked when gyro is primary controller
+            if (gameState === 'PLAY' && !GyroSettings.cfg.gyroEnabled) {
                 var dy = e.changedTouches[0].clientY - tSY, dx = e.changedTouches[0].clientX - tSX, dt2 = Date.now() - tST;
                 if (Math.abs(dy) < 28 && dt2 < 240) player.flip();
                 else if (Math.abs(dy) > Math.abs(dx)) player.move(dy < 0 ? -1 : 1);
@@ -1361,6 +1784,7 @@
             scrLogin.classList.remove('on');
             scrSettings.classList.remove('on');
             scrLevels.classList.remove('on');
+            if(document.getElementById('scr-skins')) document.getElementById('scr-skins').classList.remove('on');
             scrOver.classList.remove('on');
             scrVictory.classList.remove('on');
             scrPause.classList.remove('on');
@@ -1398,6 +1822,89 @@
             }
         }
 
+        const scrSkins = document.getElementById('scr-skins');
+        const skinsGrid = document.getElementById('skins-grid');
+        const skinsTotalGemsVal = document.getElementById('skins-total-gems-val');
+
+        function renderSkinsMenu() {
+            if(!skinsTotalGemsVal) return;
+            skinsTotalGemsVal.textContent = totalGems;
+            skinsGrid.innerHTML = '';
+            Object.keys(SKINS_DATA).forEach(id => {
+                let s = SKINS_DATA[id];
+                let isUnlocked = unlockedSkins.includes(id);
+                let isEquipped = selectedSkin === id;
+                
+                let card = document.createElement('div');
+                card.className = 'skin-card' + (isUnlocked ? '' : ' locked') + (isEquipped ? ' equipped' : '');
+                
+                let html = '<div class="skin-img-wrap">';
+                html += '<canvas class="skin-cnv" width="80" height="80"></canvas>';
+                if (!isUnlocked) {
+                    html += '<div class="skin-lock-overlay">🔒</div>';
+                }
+                html += '</div>';
+                
+                html += '<div class="skin-name">' + s.name + '</div>';
+                
+                if (!isUnlocked) {
+                    html += '<div class="skin-cost">' + s.cost + ' 💎</div>';
+                    html += '<div class="skin-status" style="color:#ff3366;">LOCKED</div>';
+                } else if (isEquipped) {
+                    html += '<div class="skin-cost" style="color:#ff00ff; text-shadow:0 0 10px #ff00ff;">EQUIPPED</div>';
+                    html += '<div class="skin-status" style="color:#ff00ff;">SELECTED</div>';
+                } else {
+                    html += '<div class="skin-cost" style="color:#00f2ff;">UNLOCKED</div>';
+                    html += '<div class="skin-status" style="color:#00f2ff;">READY</div>';
+                }
+                
+                card.innerHTML = html;
+                
+                // Draw Preview
+                let cvs = card.querySelector('canvas');
+                let c = cvs.getContext('2d');
+                drawSkinPreview(c, id, 1.2, 185, 0); 
+                
+                card.addEventListener('click', function() {
+                    if (isUnlocked) {
+                        if (!isEquipped) {
+                            selectedSkin = id;
+                            localStorage.setItem('vs_selected_skin', selectedSkin);
+                            SFX.powerup();
+                            renderSkinsMenu();
+                        }
+                    } else {
+                        if (totalGems >= s.cost) {
+                            totalGems -= s.cost;
+                            localStorage.setItem('vs_total_gems', totalGems);
+                            document.getElementById('total-gems-val').textContent = totalGems;
+                            unlockedSkins.push(id);
+                            localStorage.setItem('vs_unlocked_skins', JSON.stringify(unlockedSkins));
+                            selectedSkin = id;
+                            localStorage.setItem('vs_selected_skin', selectedSkin);
+                            SFX.super();
+                            renderSkinsMenu();
+                        } else {
+                            card.style.borderColor = '#ff3366';
+                            setTimeout(() => { card.style.borderColor = ''; }, 300);
+                            SFX.die(); // using die as error bump
+                        }
+                    }
+                });
+                skinsGrid.appendChild(card);
+            });
+        }
+        
+        function showSkinsScreen() {
+            gameState = 'SKINS';
+            renderSkinsMenu();
+            scrStart.classList.remove('on');
+            scrSkins.classList.add('on');
+        }
+
+        if(document.getElementById('btn-skins')) document.getElementById('btn-skins').addEventListener('click', showSkinsScreen);
+        if(document.getElementById('btn-close-skins')) document.getElementById('btn-close-skins').addEventListener('click', showStartScreen);
+
         document.getElementById('btn-login-submit').addEventListener('click', processLogin);
         inputName.addEventListener('keydown', function (e) { if (e.key === 'Enter') processLogin(); });
 
@@ -1405,6 +1912,7 @@
             gameState = 'SETTINGS';
             setNameDisp.textContent = playerName.toUpperCase();
             document.getElementById('set-highscore-display').textContent = bestScore;
+            document.getElementById('set-totalgems-display').textContent = totalGems;
             scrStart.classList.remove('on');
             scrSettings.classList.add('on');
         });
@@ -1437,7 +1945,13 @@
                 localStorage.removeItem('vs_level_save');
                 localStorage.removeItem('vs_endless_best');
                 localStorage.removeItem('vs_muted');
+                localStorage.removeItem('vs_total_gems');
+                localStorage.removeItem('vs_unlocked_skins');
+                localStorage.removeItem('vs_selected_skin');
+                unlockedSkins = ['default-jet'];
+                selectedSkin = 'default-jet';
                 bestScore = 0; bestEl.textContent = '0';
+                totalGems = 0; document.getElementById('total-gems-val').textContent = '0';
                 unlockedLevel = 1; level = 1;
                 playerName = ''; inputName.value = '';
                 scrSettings.classList.remove('on');
@@ -1466,23 +1980,13 @@
         });
 
         // Handle app background/foreground
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
-                if (!bgMusic.paused) {
-                    bgMusic.pause();
-                    bgMusic._wasPlaying = true;
-                }
-                if (audioCtx && audioCtx.state === 'running') {
-                    audioCtx.suspend();
-                }
+                if (!bgMusic.paused) { bgMusic.pause(); bgMusic._wasPlaying = true; }
+                if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
             } else {
-                if (bgMusic._wasPlaying) {
-                    bgMusic.play().catch(e => console.log('Resume blocked'));
-                    bgMusic._wasPlaying = false;
-                }
-                if (audioCtx && audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
+                if (bgMusic._wasPlaying) { bgMusic.play().catch(function(){}); bgMusic._wasPlaying = false; }
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
             }
         });
 
@@ -1521,5 +2025,8 @@
             scrConfirm.classList.remove('on');
             startResumeCountdown();
         });
+
+
+
 
         requestAnimationFrame(loop);

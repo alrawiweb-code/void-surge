@@ -28,7 +28,12 @@
 
     <div id="hud">
         <div class="sw"><span class="lbl">SCORE</span><span id="score-val">0</span></div>
-        <div class="sw" style="align-items:flex-end"><span class="lbl">BEST</span><span id="best-val">0</span></div>
+        <div class="sw" style="align-items:flex-end">
+            <span class="lbl">BEST</span><span id="best-val">0</span>
+            <div style="margin-top: 6px; display: flex; flex-direction: column; align-items: flex-end;">
+                <span class="lbl">GEMS</span><span id="total-gems-val" style="font-size: clamp(16px, 3.5vw, 22px); font-weight: 700; color: #ff00ff; text-align: right;">0</span>
+            </div>
+        </div>
     </div>
     <div id="wave-lbl">LEVEL 1 / 100</div>
     <div id="chkpt-hud-obj" style="display:none;position:fixed;top:calc(36px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:2px;color:#00f2ff;text-shadow:0 0 10px rgba(0,242,255,0.8);pointer-events:none;z-index:10;white-space:nowrap;"></div>
@@ -71,6 +76,7 @@
             <button class="btn" id="btn-levels">LEVELS</button>
             <button class="btn sec" id="btn-resume-chkpt-start" style="display:none;">RESUME L1</button>
         </div>
+        <button class="btn sec" id="btn-skins" style="margin-bottom:20px; border-color:#ff00ff; color:#ff00ff;">💎 ICONS</button>
         <div class="howto" id="mode-desc" style="font-size: 14px; color: #fff; text-shadow: 0 0 10px #00f2ff; letter-spacing: 2px;">
             SWIPE UP/DOWN TO DODGE · TAP TO FLIP LANE<br>
             COLLECT <em>GEMS</em> · AVOID <em>OBSTACLES</em><br>
@@ -85,6 +91,18 @@
         <button class="btn-small" id="btn-close-levels">BACK TO MENU</button>
     </div>
 
+    <!-- Skins Screen -->
+    <div class="screen" id="scr-skins">
+        <div class="go-title" style="color:#ff00ff;text-shadow:0 0 40px rgba(255,0,255,.55);">ICONS</div>
+        <div style="font-family:'Share Tech Mono',monospace;font-size:16px;color:#00f2ff;margin:10px 0 20px;letter-spacing:2px;">
+            YOUR GEMS: <span id="skins-total-gems-val" style="color:#ff00ff;">0</span> 💎
+        </div>
+        <div class="skins-grid" id="skins-grid">
+            <!-- Skin cards dynamically populated by JS -->
+        </div>
+        <button class="btn-small" id="btn-close-skins" style="margin-top:20px;">BACK TO MENU</button>
+    </div>
+
     <div class="screen" id="scr-settings">
         <div class="go-title" style="color:#ffcc00;text-shadow:0 0 40px rgba(255,204,0,.55);">SYSTEM</div>
         <div
@@ -96,15 +114,19 @@
         <div
             style="margin-bottom: 20px; font-family:'Share Tech Mono', monospace; font-size:14px; letter-spacing: 2px;">
             HIGHEST SCORE: <span id="set-highscore-display" style="color:#ffcc00;">0</span></div>
+        <div
+            style="margin-bottom: 20px; font-family:'Share Tech Mono', monospace; font-size:14px; letter-spacing: 2px;">
+            TOTAL GEMS: <span id="set-totalgems-display" style="color:#ff00ff;">0</span></div>
         <button class="btn sec" id="btn-change-name" style="margin: 0 4px 15px;">CHANGE NAME</button>
         <button class="btn sec" id="btn-clear-data"
             style="margin: 0 4px 15px; color:#ff3366; border-color:rgba(255,51,102,.3);">CLEAR SAVED DATA</button>
         <button class="btn sec" id="btn-toggle-mute" style="margin: 0 4px 15px; border-color:rgba(255,255,255,.3);">MUTE AUDIO</button>
         <button class="btn sec" id="btn-about-us" style="margin: 0 4px 15px;">ABOUT US</button>
         <button class="btn sec" id="btn-privacy-policy" style="margin: 0 4px 15px;">PRIVACY POLICY</button>
-        <br>
+
         <button class="btn-small" id="btn-close-settings">BACK TO TERMINAL</button>
     </div>
+
 
     <div class="screen" id="scr-over">
         <div class="go-title">OBLITERATED</div>
@@ -155,6 +177,7 @@
     <div id="countdown-overlay">
         <div id="countdown-text"></div>
     </div>
+
 
     <script src="index.js"></script>
 </body>

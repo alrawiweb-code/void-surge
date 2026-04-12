@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Void Surge</string>
     <string name="title_activity_main">Void Surge</string>
-    <string name="package_name">com.voidsurge.game</string>
-    <string name="custom_url_scheme">com.voidsurge.game</string>
+    <string name="package_name">com.voidespacesurge</string>
+    <string name="custom_url_scheme">com.voidespacesurge</string>
 </resources>
