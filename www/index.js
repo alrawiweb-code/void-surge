@@ -81,13 +81,6 @@
         const welcomeMsg = document.getElementById('welcome-msg');
         const setNameDisp = document.getElementById('set-name-display');
 
-        /* ════════════════════════════════════════════════
-           0. GYRO SETTINGS MODULE
-        ════════════════════════════════════════════════ */
-
-
-
-
 
         // Per-run vars
         let gameSpeed = 5;
@@ -446,14 +439,14 @@
             levelSwaps++;
             SFX.lane(); spawnParts(this.x, this.y, 10, LC[dest], { spread: 6, upBias: 1, grav: 0.06 });
         };
-        Player.prototype.update = function (dt) {
-            this.t += dt;
-            this.hue = (this.hue + 0.7) % 360;
+        Player.prototype.update = function (dtMs, dtRatio) {
+            this.t += dtMs;
+            this.hue = (this.hue + 0.7 * dtRatio) % 360;
 
             // TOUCH/KEYBOARD MODE: smooth lane interpolation
-            this.y += (this.targetY - this.y) * (1 - Math.pow(0.01, dt / 120));
+            this.y += (this.targetY - this.y) * (1 - Math.pow(0.01, dtMs / 120));
 
-            if (this.inv > 0) this.inv -= dt;
+            if (this.inv > 0) this.inv -= dtMs;
             this.trail.push({ x: this.x, y: this.y });
             if (this.trail.length > 10) this.trail.shift();
         };
@@ -957,12 +950,12 @@
             this.destLane = this.lane;
         }
         Obstacle.prototype.currentSpd = function () { return (puTime.slow > 0 ? gameSpeed * 0.44 : gameSpeed) * speedScale; };
-        Obstacle.prototype.update = function () {
-            this.x -= this.currentSpd();
-            this.phase += 0.07;
+        Obstacle.prototype.update = function (dtRatio) {
+            this.x -= this.currentSpd() * dtRatio;
+            this.phase += 0.07 * dtRatio;
             if (this.moving) {
                 var tY = this.destLane * laneH + (laneH - this.h) / 2;
-                this.y += (tY - this.y) * 0.045;
+                this.y += (tY - this.y) * 0.045 * dtRatio;
                 if (Math.abs(tY - this.y) < 5) { this.destLane = Math.floor(Math.random() * LANES); this.lane = this.destLane; this.col = LC[this.lane]; }
             }
         };
@@ -1012,14 +1005,14 @@
                        (this.type === 'power' ? (this.puKind === 'shield' ? '#00f2ff' : this.puKind === 'slow' ? '#ffcc00' : '#ff00ff') : '#00f2ff');
             this.r = (this.type === 'power' ? 28 : this.type === 'super' ? 12 : 9) * scale;
         }
-        Gem.prototype.update = function () {
-            this.x -= (puTime.slow > 0 ? gameSpeed * 0.44 : gameSpeed) * speedScale;
-            this.phase += 0.09;
+        Gem.prototype.update = function (dtRatio) {
+            this.x -= (puTime.slow > 0 ? gameSpeed * 0.44 : gameSpeed) * speedScale * dtRatio;
+            this.phase += 0.09 * dtRatio;
             this.y = laneY[this.lane] + Math.sin(this.phase) * 8;
             if (puTime.magnet > 0 && player) {
                 var dx = player.x - this.x, dy = player.y - this.y;
                 var d = Math.sqrt(dx * dx + dy * dy);
-                if (d < 230 && d > 1) { this.x += (dx / d) * 9; this.y += (dy / d) * 9; }
+                if (d < 230 && d > 1) { this.x += (dx / d) * 9 * dtRatio; this.y += (dy / d) * 9 * dtRatio; }
             }
         };
         Gem.prototype.draw = function () {
@@ -1049,9 +1042,9 @@
             this.hue = Math.random() * 360; this.phase = Math.random() * Math.PI * 2;
             this.r = 11 * scale;
         }
-        BossProj.prototype.update = function () {
-            this.x -= puTime.slow > 0 ? this.baseSpd * 0.44 : this.baseSpd;
-            this.phase += 0.13; this.hue = (this.hue + 2) % 360;
+        BossProj.prototype.update = function (dtRatio) {
+            this.x -= (puTime.slow > 0 ? this.baseSpd * 0.44 : this.baseSpd) * dtRatio;
+            this.phase += 0.13 * dtRatio; this.hue = (this.hue + 2 * dtRatio) % 360;
             this.y = laneY[this.lane] + Math.sin(this.phase) * 26;
         };
         BossProj.prototype.draw = function () {
@@ -1111,16 +1104,16 @@
             this.x = 0;
             this.y = this.lane * laneH + (laneH - this.h) / 2;
         }
-        BossLaser.prototype.update = function(dt) {
+        BossLaser.prototype.update = function(dtMs, dtRatio) {
             if (this.state === 'charge') {
-                this.timer -= dt;
+                this.timer -= dtMs;
                 if (this.timer <= 0) {
                     this.state = 'fire';
                     SFX.combo();
                     doShake(10);
                 }
             } else {
-                this.duration -= dt;
+                this.duration -= dtMs;
             }
         };
         BossLaser.prototype.draw = function() {
@@ -1149,9 +1142,9 @@
             this.maxHp = 30000;
             this.hp = this.maxHp; 
         }
-        VoidCoreBoss.prototype.update = function(dt) {
-            this.t += dt;
-            this.hp -= dt;
+        VoidCoreBoss.prototype.update = function(dtMs, dtRatio) {
+            this.t += dtMs;
+            this.hp -= dtMs;
             let ratio = this.hp / this.maxHp;
             
             if (ratio > 0.66) this.phase = 1;
@@ -1161,7 +1154,7 @@
             this.y = H / 2 + Math.sin(this.t * 0.002) * (H * 0.3);
             
             if (this.phase === 1 || this.phase === 3) {
-                if (Math.random() < (this.phase === 3 ? 0.08 : 0.05)) {
+                if (Math.random() < (this.phase === 3 ? 0.08 : 0.05) * dtRatio) {
                     let p = getBossProj();
                     if (p) {
                         p.x = this.x - this.r; p.y = this.y;
@@ -1173,7 +1166,7 @@
             if (this.phase === 2 || this.phase === 3) {
                 let anyLaserActive = false;
                 for (let li = 0; li < 4; li++) if (bossLasers[li].active) anyLaserActive = true;
-                if (!anyLaserActive && Math.random() < 0.02) {
+                if (!anyLaserActive && Math.random() < 0.02 * dtRatio) {
                     BossLaser.call(bossLasers[0], Math.floor(Math.random() * LANES), 800);
                     bossLasers[0].active = true;
                     if (this.phase === 3) {
@@ -1280,7 +1273,10 @@
         function loop(ts) {
             animId = requestAnimationFrame(loop);
             if (prevTS === null) { prevTS = ts; return; }
-            var dt = Math.min(ts - prevTS, 50); prevTS = ts;
+            var dtMs = Math.min(ts - prevTS, 50); prevTS = ts;
+            var dtSec = dtMs / 1000;
+            dtSec = Math.min(dtSec, 0.033);
+            var dtRatio = dtSec * 60;
 
             if (shakeMag > 0) { shakeX = (Math.random() - 0.5) * shakeMag * 2; shakeY = (Math.random() - 0.5) * shakeMag * 2; shakeMag *= 0.82; }
             ctx.save(); ctx.translate(shakeX, shakeY);
@@ -1290,7 +1286,7 @@
             grad.addColorStop(0, 'hsl(' + (bgHue % 360) + ',20%,3%)'); grad.addColorStop(1, 'hsl(' + ((bgHue + 40) % 360) + ',20%,5%)');
             ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
 
-            gridOff = (gridOff + ((puTime.slow > 0 ? gameSpeed * 0.44 : gameSpeed) * speedScale) * 0.5) % 80;
+            gridOff = (gridOff + ((puTime.slow > 0 ? gameSpeed * 0.44 : gameSpeed) * speedScale) * 0.5 * dtRatio) % 80;
             ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.032)'; ctx.lineWidth = 1;
             for (var gx = (gridOff % 80) - 80; gx < W + 80; gx += 80) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
             for (var gy = 0; gy < H; gy += 80) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
@@ -1304,7 +1300,7 @@
 
             for (var bi = 0; bi < bgLines.length; bi++) {
                 var bl = bgLines[bi];
-                let plxSpd = (5 + gameSpeed * 1.5 * bl.spd) * (puTime.slow > 0 ? 0.4 : 1) * speedScale;
+                let plxSpd = (5 + gameSpeed * 1.5 * bl.spd) * (puTime.slow > 0 ? 0.4 : 1) * speedScale * dtRatio;
                 bl.x -= plxSpd;
                 if (bl.x + bl.len < 0) { bl.x = W + bl.len; bl.y = Math.random() * H; }
                 ctx.save(); ctx.globalAlpha = bl.a; ctx.strokeStyle = '#fff'; ctx.lineWidth = bl.w;
@@ -1312,7 +1308,7 @@
             }
 
             if (gameState !== 'PLAY' && gameState !== 'CHECKPOINT_PAUSE') {
-                drawParts(); drawPopups(); ctx.restore(); return;
+                drawParts(dtRatio); drawPopups(dtRatio); ctx.restore(); return;
             }
 
             if (gameState === 'CHECKPOINT_PAUSE') {
@@ -1321,22 +1317,22 @@
                 for (var di3 = 0; di3 < 10; di3++) if(bossProjs[di3].active) bossProjs[di3].draw();
                 for (var di4 = 0; di4 < 4; di4++) if(bossLasers[di4].active) bossLasers[di4].draw();
                 if (finalBoss) finalBoss.draw();
-                player.draw(); drawParts(); drawPopups();
+                player.draw(); drawParts(dtRatio); drawPopups(dtRatio);
                 
                 if (puTime.slow > 0) { ctx.save(); ctx.globalAlpha = 0.07; ctx.fillStyle = '#ffcc00'; ctx.fillRect(0, 0, W, H); ctx.restore(); }
                 ctx.restore(); 
                 return;
             }
 
-            elapsed += dt;
-            bgHue = (bgHue + 0.038) % 360;
+            elapsed += dtMs;
+            bgHue = (bgHue + 0.038 * dtRatio) % 360;
 
             if (chaos) {
-                chaosFlash += dt;
+                chaosFlash += dtMs;
                 if (chaosFlash > 650) { chaosFlash = 0; flashScreen('hsl(' + Math.round(Math.random() * 360) + ',100%,60%,0.04)', 250); }
             }
 
-            for (let k in puTime) if (puTime[k] > 0 && !window.infPowerups) puTime[k] = Math.max(0, puTime[k] - dt);
+            for (let k in puTime) if (puTime[k] > 0 && !window.infPowerups) puTime[k] = Math.max(0, puTime[k] - dtMs);
             updatePUBar();
             for (var i = 0; i < LANES; i++) {
                 ldots[i].style.background = player.lane === i ? LC[i] : 'rgba(255,255,255,0.12)';
@@ -1345,7 +1341,7 @@
 
             // Universal continuous scaling
             if (gameState === 'PLAY') {
-                timeScaling += dt * 0.00005;
+                timeScaling += dtMs * 0.00005;
                 gameSpeed = Math.min(baseSpeed + timeScaling, maxSpeed);
             }
             
@@ -1357,7 +1353,7 @@
                 
                 if (!bossActive && tSec > 0 && tSec % 90 === 0 && tSec !== lastBossSec) { lastBossSec = tSec; startBoss(); }
                 if (!bossActive && gameState === 'PLAY') {
-                    score += 0.5 + (combo >= 10 ? 0.5 : 0); scoreEl.textContent = Math.floor(score);
+                    score += (0.5 + (combo >= 10 ? 0.5 : 0)) * dtRatio; scoreEl.textContent = Math.floor(score);
                     if (tSec > 0 && tSec % 30 === 0 && tSec !== lastMilestoneSec) {
                         lastMilestoneSec = tSec;
                         addPopup(W / 2, H / 2 - 40, tSec + 'S SURVIVED!', '#00f2ff');
@@ -1366,8 +1362,8 @@
                 }
             } else {
                 if (!bossActive && level <= 10 && LEVEL_DATA[level]) {
-                    noGemTime += dt;
-                    if (level === 8 && levelSegment === 0) blindTime += dt;
+                    noGemTime += dtMs;
+                    if (level === 8 && levelSegment === 0) blindTime += dtMs;
                     if (levelSegment < 3 && LEVEL_DATA[level]) {
                         let desc = LEVEL_DATA[level].desc[levelSegment];
                         let prog = '';
@@ -1404,15 +1400,15 @@
 
             if (bossActive) {
                 if (finalBoss) {
-                    finalBoss.update(dt);
-                    bossTimer -= dt;
+                    finalBoss.update(dtMs, dtRatio);
+                    bossTimer -= dtMs;
                     if (bossTimer <= 0) {
                         spawnParts(finalBoss.x, finalBoss.y, 100, '#ff1133', {spread: 25, size: 8});
                         finishLevel();
                     }
                 } else {
-                    bossTimer -= dt;
-                    bossProjTimer -= dt;
+                    bossTimer -= dtMs;
+                    bossProjTimer -= dtMs;
                     if (bossProjTimer <= 0) {
                         let bp = getBossProj();
                         if(bp) { bp.x = W + 20; bp.lane = Math.floor(Math.random()*LANES); bp.y = laneY[bp.lane]; }
@@ -1423,31 +1419,31 @@
 
                 for (let bi = 0; bi < 10; bi++) {
                     if (!bossProjs[bi].active) continue;
-                    bossProjs[bi].update();
+                    bossProjs[bi].update(dtRatio);
                     if (bossProjs[bi].x < -30) bossProjs[bi].active = false;
                 }
                 for (let li = 0; li < 4; li++) {
                     if (!bossLasers[li].active) continue;
-                    bossLasers[li].update(dt);
+                    bossLasers[li].update(dtMs, dtRatio);
                     if (bossLasers[li].duration <= 0) bossLasers[li].active = false;
                 }
             }
 
-            obsTimer -= dt; if (obsTimer <= 0 && !bossActive) {
+            obsTimer -= dtMs; if (obsTimer <= 0 && !bossActive) {
                 let ob = getObstacle({ moving: chaos && Math.random() < 0.4 });
                 obsTimer = obsInterval();
             }
-            gemTimer -= dt; if (gemTimer <= 0 && !bossActive) { 
+            gemTimer -= dtMs; if (gemTimer <= 0 && !bossActive) { 
                 let g = getGem(); 
                 gemTimer = gemInterval() * gemRateMulti; 
             }
 
-            player.update(dt);
+            player.update(dtMs, dtRatio);
 
             var phb = player.hitbox();
             for (var oi = 0; oi < 40; oi++) {
                 if (!obstacles[oi].active) continue;
-                var o = obstacles[oi]; o.update();
+                var o = obstacles[oi]; o.update(dtRatio);
                 if (!o.passed && o.x + o.w < player.x - player.w / 2) {
                     o.passed = true; score += (gameMode === 'levels' ? 2 : 0); dodges++; levelDodges++; scoreEl.textContent = Math.floor(score);
                 }
@@ -1484,7 +1480,7 @@
 
             for (var gi = 0; gi < 20; gi++) {
                 if (!gemList[gi].active) continue;
-                var g = gemList[gi]; g.update();
+                var g = gemList[gi]; g.update(dtRatio);
                 if (Math.hypot(g.x - player.x, g.y - player.y) < g.r + player.w / 2 + 2) {
                     g.active = false; gemsGot++; levelGemsGot++; combo++; noGemTime = 0;
                     totalGems++;
@@ -1514,7 +1510,7 @@
             for (var di3 = 0; di3 < 10; di3++) if(bossProjs[di3].active) bossProjs[di3].draw();
             for (var di4 = 0; di4 < 4; di4++) if(bossLasers[di4].active) bossLasers[di4].draw();
             if (finalBoss) finalBoss.draw();
-            player.draw(); drawParts(); drawPopups();
+            player.draw(); drawParts(dtRatio); drawPopups(dtRatio);
 
             if (bossActive) {
                 var pct = finalBoss ? Math.max(0, finalBoss.hp / finalBoss.maxHp) : Math.max(0, bossTimer / (6000 + (level * 200)));
@@ -1542,20 +1538,22 @@
             ctx.restore();
         }
 
-        function drawParts() {
+        function drawParts(dtRatio) {
+            dtRatio = dtRatio || 1;
             for (var i = 0; i < 60; i++) {
                 if (!particles[i].active) continue;
-                var p = particles[i]; p.x += p.vx; p.y += p.vy; p.vy += p.grav; p.vx *= 0.97; p.life -= 0.024;
+                var p = particles[i]; p.x += p.vx * dtRatio; p.y += p.vy * dtRatio; p.vy += p.grav * dtRatio; p.vx *= Math.pow(0.97, dtRatio); p.life -= 0.024 * dtRatio;
                 if (p.life <= 0) { p.active = false; continue; }
                 drawGlowFast(p.x, p.y, p.col, p.size * 3, p.life * 0.6);
                 ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col;
                 ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.5, p.size * p.life), 0, Math.PI * 2); ctx.fill(); ctx.restore();
             }
         }
-        function drawPopups() {
+        function drawPopups(dtRatio) {
+            dtRatio = dtRatio || 1;
             for (var i = 0; i < 15; i++) {
                 if (!popups[i].active) continue;
-                var p = popups[i]; p.y += p.vy; p.vy *= 0.93; p.life -= 0.026;
+                var p = popups[i]; p.y += p.vy * dtRatio; p.vy *= Math.pow(0.93, dtRatio); p.life -= 0.026 * dtRatio;
                 if (p.life <= 0) { p.active = false; continue; }
                 drawGlowFast(p.x, p.y - 5, p.col, 25, p.life * 0.5);
                 ctx.save(); ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = p.col;
@@ -1728,26 +1726,25 @@
                 if (gameState === 'PAUSE') { startResumeCountdown(); return; }
             }
             if (gameState !== 'PLAY') return;
-            // Keyboard blocked when gyro is primary controller
-            if (GyroSettings.cfg.gyroEnabled) return;
-            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); player.move(-1); }
-            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); player.move(1); }
-            if (e.code === 'Space') { e.preventDefault(); player.flip(); }
+            console.log('[INPUT] keydown detected:', e.key);
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') { e.preventDefault(); console.log('[INPUT] move UP triggered'); player.move(-1); }
+            if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); console.log('[INPUT] move DOWN triggered'); player.move(1); }
+            if (e.code === 'Space') { e.preventDefault(); console.log('[INPUT] flip triggered'); player.flip(); }
         });
 
         var tSY = null, tSX = null, tST = null;
         canvas.addEventListener('touchstart', function (e) {
             e.preventDefault();
+            console.log('[INPUT] touch detected');
             tSY = e.touches[0].clientY; tSX = e.touches[0].clientX; tST = Date.now();
             getAudio();
         }, { passive: false });
         canvas.addEventListener('touchend', function (e) {
             e.preventDefault(); if (tSY === null) return;
-            // Touch/swipe is blocked when gyro is primary controller
-            if (gameState === 'PLAY' && !GyroSettings.cfg.gyroEnabled) {
+            if (gameState === 'PLAY') {
                 var dy = e.changedTouches[0].clientY - tSY, dx = e.changedTouches[0].clientX - tSX, dt2 = Date.now() - tST;
-                if (Math.abs(dy) < 28 && dt2 < 240) player.flip();
-                else if (Math.abs(dy) > Math.abs(dx)) player.move(dy < 0 ? -1 : 1);
+                if (Math.abs(dy) < 28 && dt2 < 240) { console.log('[INPUT] tap → flip triggered'); player.flip(); }
+                else if (Math.abs(dy) > Math.abs(dx)) { console.log('[INPUT] swipe → move triggered, dy=' + dy); player.move(dy < 0 ? -1 : 1); }
             }
             tSY = null; tSX = null; tST = null;
         }, { passive: false });
