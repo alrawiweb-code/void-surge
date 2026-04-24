@@ -1612,8 +1612,12 @@
             btnPause.style.display = 'block';
             player = new Player(); getAudio();
 
-
+            // Pre-load a rewarded ad so it's ready by game over
+            if (typeof AdManager !== 'undefined') AdManager.prepareRewarded();
         }
+
+        // Track gems earned this run for the 2× reward
+        let _lastRunGems = 0;
 
         function endGame() {
             lastPlayedMode = gameMode;   // Remember for Retry
@@ -1621,6 +1625,7 @@
             gameState = 'OVER'; btnPause.style.display = 'none'; SFX.die(); doShake(16); flashScreen('#ff000066', 500);
             spawnParts(player.x, player.y, 45, '#ff3366', { spread: 10, size: 4, grav: 0.18 });
             finalScEl.textContent = Math.floor(score);
+            _lastRunGems = gemsGot;
             
             if(gameMode === 'endless') {
                 let currentBest = parseInt(localStorage.getItem('vs_endless_best') || 0);
@@ -1654,7 +1659,34 @@
                     });
                 }
             }
-            scrOver.classList.add('on');
+
+            // Reset ad reward buttons for this death
+            var btnDoubleGems = document.getElementById('btn-ad-double-gems');
+            var btnAdRetry = document.getElementById('btn-ad-retry-level');
+            btnDoubleGems.disabled = false;
+            btnDoubleGems.classList.remove('claimed');
+            btnDoubleGems.textContent = '▶ WATCH AD — 2× GEMS';
+            // Show retry-level ad button only in levels mode with a valid checkpoint
+            if (gameMode === 'levels' && chk.level && chk.level <= MAX_LEVELS) {
+                btnAdRetry.style.display = 'inline-block';
+                btnAdRetry.disabled = false;
+                btnAdRetry.classList.remove('claimed');
+                btnAdRetry.textContent = '▶ WATCH AD — RETRY L' + chk.level;
+            } else {
+                btnAdRetry.style.display = 'none';
+            }
+            // Hide gems button if 0 gems earned (nothing to double)
+            if (gemsGot <= 0) btnDoubleGems.style.display = 'none';
+            else btnDoubleGems.style.display = 'inline-block';
+
+            // Show interstitial ad (every 3rd death), then reveal game over screen
+            if (typeof AdManager !== 'undefined') {
+                AdManager.showInterstitialIfDue(function() {
+                    scrOver.classList.add('on');
+                });
+            } else {
+                scrOver.classList.add('on');
+            }
         }
 
         function winGame() {
@@ -1963,6 +1995,39 @@
             localStorage.setItem('vs_muted', isMuted);
             bgMusic.muted = isMuted;
             this.textContent = isMuted ? 'UNMUTE AUDIO' : 'MUTE AUDIO';
+        });
+
+        // --- Ad Reward Button Handlers ---
+        document.getElementById('btn-ad-double-gems').addEventListener('click', function() {
+            var btn = this;
+            if (btn.disabled || typeof AdManager === 'undefined') return;
+            btn.disabled = true;
+            btn.textContent = 'LOADING AD...';
+
+            AdManager.showRewarded(function() {
+                // Award bonus gems (double what was earned this run)
+                var bonus = _lastRunGems;
+                totalGems += bonus;
+                localStorage.setItem('vs_total_gems', totalGems);
+                document.getElementById('total-gems-val').textContent = totalGems;
+                // Update the final sub text to show the bonus
+                finalSubEl.innerHTML += '<br><span style="color:#ffcc00;text-shadow:0 0 10px #ffcc00;">+' + bonus + ' BONUS GEMS ★</span>';
+                btn.classList.add('claimed');
+                btn.textContent = '✓ GEMS DOUBLED!';
+                if (typeof SFX !== 'undefined' && SFX.powerup) SFX.powerup();
+            });
+        });
+
+        document.getElementById('btn-ad-retry-level').addEventListener('click', function() {
+            var btn = this;
+            if (btn.disabled || typeof AdManager === 'undefined') return;
+            btn.disabled = true;
+            btn.textContent = 'LOADING AD...';
+
+            AdManager.showRewarded(function() {
+                // Start the level from the checkpoint
+                startGame('levels', true);
+            });
         });
 
         // Initial boot logic

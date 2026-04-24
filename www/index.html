@@ -76,7 +76,7 @@
             <button class="btn" id="btn-levels">LEVELS</button>
             <button class="btn sec" id="btn-resume-chkpt-start" style="display:none;">RESUME L1</button>
         </div>
-        <button class="btn sec" id="btn-skins" style="margin-bottom:20px; border-color:#ff00ff; color:#ff00ff;">💎 ICONS</button>
+        <button class="btn sec" id="btn-skins" style="margin-bottom:20px; border-color:#ff00ff; color:#ff00ff;">💎 SHIPS</button>
         <div class="howto" id="mode-desc" style="font-size: 14px; color: #fff; text-shadow: 0 0 10px #00f2ff; letter-spacing: 2px;">
             SWIPE UP/DOWN TO DODGE · TAP TO FLIP LANE<br>
             COLLECT <em>GEMS</em> · AVOID <em>OBSTACLES</em><br>
@@ -93,7 +93,7 @@
 
     <!-- Skins Screen -->
     <div class="screen" id="scr-skins">
-        <div class="go-title" style="color:#ff00ff;text-shadow:0 0 40px rgba(255,0,255,.55);">ICONS</div>
+        <div class="go-title" style="color:#ff00ff;text-shadow:0 0 40px rgba(255,0,255,.55);">SHIPS</div>
         <div style="font-family:'Share Tech Mono',monospace;font-size:16px;color:#00f2ff;margin:10px 0 20px;letter-spacing:2px;">
             YOUR GEMS: <span id="skins-total-gems-val" style="color:#ff00ff;">0</span> 💎
         </div>
@@ -132,6 +132,10 @@
         <div class="go-title">OBLITERATED</div>
         <div class="final-big" id="final-score">0</div>
         <div class="final-sub" id="final-sub">—</div>
+        <div class="ad-reward-row">
+            <button class="btn-ad-reward" id="btn-ad-double-gems">▶ WATCH AD — 2× GEMS</button>
+            <button class="btn-ad-reward retry" id="btn-ad-retry-level" style="display:none;">▶ WATCH AD — RETRY LEVEL</button>
+        </div>
         <div class="btn-row">
             <button class="btn" id="btn-retry">↺ RETRY</button>
             <button class="btn" id="btn-resume-chkpt-over" style="display:none;">RETRY LEVEL</button>
@@ -179,6 +183,7 @@
     </div>
 
 
+    <script src="ad-manager.js"></script>
     <script src="index.js"></script>
 </body>
 

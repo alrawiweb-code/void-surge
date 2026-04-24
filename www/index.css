@@ -647,3 +647,60 @@
         }
 
 
+        /* ═══════ Ad Reward Buttons ═══════ */
+        .ad-reward-row {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .btn-ad-reward {
+            padding: 10px 24px;
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #000;
+            background: linear-gradient(90deg, #ffcc00, #ff9900);
+            border: none;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+            clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+            text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+            white-space: nowrap;
+        }
+
+        .btn-ad-reward:hover,
+        .btn-ad-reward:active {
+            transform: scale(1.06);
+            box-shadow: 0 0 28px rgba(255, 204, 0, 0.7);
+        }
+
+        .btn-ad-reward:disabled {
+            opacity: 0.35;
+            pointer-events: none;
+            filter: grayscale(0.6);
+        }
+
+        .btn-ad-reward.retry {
+            background: linear-gradient(90deg, #00f2ff, #00aaff);
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+        }
+
+        .btn-ad-reward.retry:hover,
+        .btn-ad-reward.retry:active {
+            box-shadow: 0 0 28px rgba(0, 242, 255, 0.7);
+        }
+
+        .btn-ad-reward.claimed {
+            background: rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.25);
+            clip-path: none;
+            box-shadow: none;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: default;
+            pointer-events: none;
+        }
