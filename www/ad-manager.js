@@ -73,10 +73,8 @@ const AdManager = {
         AdMob.addListener('onRewardedVideoAdReward', (rewardItem) => {
             console.log('[AdManager] Reward earned:', JSON.stringify(rewardItem));
             this._rewardEarned = true;
-            if (this._pendingRewardCallback) {
-                this._pendingRewardCallback();
-                this._pendingRewardCallback = null;
-            }
+            // DO NOT call callback here. Wait until the ad is fully dismissed
+            // to prevent the game from resuming while the ad is still on screen.
         });
 
         AdMob.addListener('onRewardedVideoAdDismissed', () => {
@@ -84,13 +82,21 @@ const AdManager = {
             if (!this._rewardEarned) {
                 console.log('[AdManager] User closed rewarded ad early — no reward.');
             }
-            this._pendingRewardCallback = null;
+            
+            // ALWAYS fire the callback when dismissed so UI can unfreeze, passing success status
+            if (this._pendingRewardCallback) {
+                this._pendingRewardCallback(this._rewardEarned);
+                this._pendingRewardCallback = null;
+            }
             this._rewardEarned = false;
         });
 
         AdMob.addListener('onRewardedVideoAdFailedToLoad', (info) => {
             console.warn('[AdManager] Rewarded ad failed to load:', info);
-            this._pendingRewardCallback = null;
+            if (this._pendingRewardCallback) {
+                this._pendingRewardCallback(false);
+                this._pendingRewardCallback = null;
+            }
             this._rewardEarned = false;
         });
     },
@@ -171,7 +177,10 @@ const AdManager = {
             await AdMob.showRewardVideoAd();
         } catch (err) {
             console.error('[AdManager] Rewarded ad error:', err);
-            this._pendingRewardCallback = null;
+            if (this._pendingRewardCallback) {
+                this._pendingRewardCallback(false);
+                this._pendingRewardCallback = null;
+            }
             this._rewardEarned = false;
         }
     },

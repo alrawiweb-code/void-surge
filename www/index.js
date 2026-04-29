@@ -50,7 +50,7 @@
         let levelSaves = JSON.parse(localStorage.getItem('vs_level_save') || '{"level":1,"unlocked":1,"checkpoint":0}');
         let level = levelSaves.current || levelSaves.level || 1;
         let unlockedLevel = levelSaves.unlocked || levelSaves.level || 1;
-        let bestScore = +(localStorage.getItem('vs_best_100') || 0);
+        let bestScore = Math.floor(+(localStorage.getItem('vs_best_100') || 0));
         let totalGems = +(localStorage.getItem('vs_total_gems') || 0);
         let unlockedSkins = JSON.parse(localStorage.getItem('vs_unlocked_skins') || '["default-jet"]');
         let selectedSkin = localStorage.getItem('vs_selected_skin') || 'default-jet';
@@ -67,7 +67,7 @@
         if (window.Capacitor && window.Capacitor.Plugins.NativeBridge) {
             window.Capacitor.Plugins.NativeBridge.getHighScore().then(function(res) {
                 if (res && res.highScore > bestScore) {
-                    bestScore = res.highScore;
+                    bestScore = Math.floor(res.highScore);
                     localStorage.setItem('vs_best_100', bestScore);
                     document.getElementById('best-val').textContent = bestScore;
                 }
@@ -1596,7 +1596,7 @@
             for(let i=0; i<15; i++) popups[i].active = false;
             finalBoss = null;
 
-            scoreEl.textContent = score;
+            scoreEl.textContent = Math.floor(score);
             let lvlTitle = (gameMode === 'levels' && LEVEL_DATA[level]) ? LEVEL_DATA[level].title : '';
             waveLbl.textContent = gameMode === 'endless' ? 'ENDLESS SURVIVAL' : ('L' + level + ' · ' + lvlTitle.toUpperCase());
             if (gameMode === 'levels' && LEVEL_DATA[level] && levelSegment < 3) {
@@ -1651,7 +1651,7 @@
             }
 
             if (score > bestScore) {
-                bestScore = score; localStorage.setItem('vs_best_100', bestScore);
+                bestScore = Math.floor(score); localStorage.setItem('vs_best_100', bestScore);
                 bestEl.textContent = bestScore; finalSubEl.innerHTML += '<br><span class="new-hs">★ NEW BEST SCORE ★</span>';
                 if (window.Capacitor && window.Capacitor.Plugins.NativeBridge) {
                     window.Capacitor.Plugins.NativeBridge.saveHighScore({score: bestScore}).then(function(res) {
@@ -1692,10 +1692,10 @@
         function winGame() {
             gameState = 'VICTORY'; btnPause.style.display = 'none'; SFX.powerup(); doShake(16); flashScreen('#ffcc0066', 1000);
             spawnParts(player.x, player.y, 100, '#ffcc00', { spread: 15, size: 5, grav: 0.1 });
-            finalScWEl.textContent = score;
+            finalScWEl.textContent = Math.floor(score);
             finalSubWEl.innerHTML = 'THE VOID HAS BEEN PURIFIED.<br>MAX COMBO ×' + maxCombo + ' &nbsp;·&nbsp; GEMS ' + gemsGot;
             if (score > bestScore) {
-                bestScore = score; localStorage.setItem('vs_best_100', bestScore);
+                bestScore = Math.floor(score); localStorage.setItem('vs_best_100', bestScore);
                 bestEl.textContent = bestScore; finalSubWEl.innerHTML += '<br><span class="new-hs">★ LEGENDARY NEW BEST ★</span>';
                 if (window.Capacitor && window.Capacitor.Plugins.NativeBridge) {
                     window.Capacitor.Plugins.NativeBridge.saveHighScore({score: bestScore}).then(function(res) {
@@ -1774,9 +1774,12 @@
         canvas.addEventListener('touchend', function (e) {
             e.preventDefault(); if (tSY === null) return;
             if (gameState === 'PLAY') {
-                var dy = e.changedTouches[0].clientY - tSY, dx = e.changedTouches[0].clientX - tSX, dt2 = Date.now() - tST;
-                if (Math.abs(dy) < 28 && dt2 < 240) { console.log('[INPUT] tap → flip triggered'); player.flip(); }
-                else if (Math.abs(dy) > Math.abs(dx)) { console.log('[INPUT] swipe → move triggered, dy=' + dy); player.move(dy < 0 ? -1 : 1); }
+                var dy = e.changedTouches[0].clientY - tSY, dx = e.changedTouches[0].clientX - tSX;
+                // Only trigger vertical swipe if distance is significant enough and more vertical than horizontal
+                if (Math.abs(dy) > 25 && Math.abs(dy) > Math.abs(dx)) { 
+                    console.log('[INPUT] swipe → move triggered, dy=' + dy); 
+                    player.move(dy < 0 ? -1 : 1); 
+                }
             }
             tSY = null; tSX = null; tST = null;
         }, { passive: false });
@@ -2004,7 +2007,13 @@
             btn.disabled = true;
             btn.textContent = 'LOADING AD...';
 
-            AdManager.showRewarded(function() {
+            AdManager.showRewarded(function(success) {
+                if (!success) {
+                    btn.disabled = false;
+                    btn.textContent = '▶ WATCH AD — 2× GEMS';
+                    return;
+                }
+                
                 // Award bonus gems (double what was earned this run)
                 var bonus = _lastRunGems;
                 totalGems += bonus;
@@ -2024,7 +2033,14 @@
             btn.disabled = true;
             btn.textContent = 'LOADING AD...';
 
-            AdManager.showRewarded(function() {
+            AdManager.showRewarded(function(success) {
+                if (!success) {
+                    let chk = JSON.parse(localStorage.getItem('vs_level_save') || '{}');
+                    btn.disabled = false;
+                    btn.textContent = '▶ WATCH AD — RETRY L' + (chk.level || '');
+                    return;
+                }
+                
                 // Start the level from the checkpoint
                 startGame('levels', true);
             });
